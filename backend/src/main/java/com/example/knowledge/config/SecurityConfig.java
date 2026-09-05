@@ -8,6 +8,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.example.knowledge.mapper.SysUserMapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -21,6 +26,15 @@ import java.util.List;
 public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+
+    @Bean
+    UserDetailsService userDetailsService(SysUserMapper userMapper) {
+        return username -> {
+            var user = userMapper.selectOne(new QueryWrapper<com.example.knowledge.entity.SysUser>().eq("username", username));
+            if (user == null) throw new UsernameNotFoundException("用户不存在");
+            return User.withUsername(user.getUsername()).password(user.getPassword()).roles(user.getRole()).disabled(user.getStatus() == null || user.getStatus() != 1).build();
+        };
+    }
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
@@ -46,4 +60,3 @@ public class SecurityConfig {
         return source;
     }
 }
-

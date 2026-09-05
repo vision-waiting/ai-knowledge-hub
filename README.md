@@ -20,5 +20,20 @@ Copy-Item .env.example .env
 docker compose up -d mysql redis qdrant minio
 ```
 
-后端和前端启动命令会在实现完成后补充到这里；完整演示流程见 `docs/deployment.md`。
+后端：
 
+```powershell
+$env:JAVA_HOME='D:\java\java21'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+cd backend
+mvn spring-boot:run
+```
+
+前端另开终端执行：
+
+```powershell
+cd frontend
+npm run dev
+```
+
+默认演示账号：`student / 123456`；管理员：`admin / 123456`。完整架构、API、RAG 和答辩流程见 `docs/architecture.md`、`docs/api.md`、`docs/rag.md` 和 `docs/deployment.md`。
