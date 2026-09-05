@@ -19,6 +19,11 @@ knowledge:
   jwt-secret: ${JWT_SECRET:change-this-development-secret-to-at-least-32-chars}
   jwt-expiration-hours: 24
   upload-dir: ${UPLOAD_DIR:./uploads}
+  chunk-size: ${CHUNK_SIZE:800}
+  chunk-overlap: ${CHUNK_OVERLAP:100}
+  retrieval-threshold: ${RETRIEVAL_THRESHOLD:0.2}
+  qdrant-enabled: ${QDRANT_ENABLED:false}
+  qdrant-url: http://${QDRANT_HOST:localhost}:${QDRANT_PORT:6333}
   ai:
     llm-enabled: ${LLM_ENABLED:false}
     llm-base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
@@ -28,4 +33,3 @@ knowledge:
     embedding-base-url: ${EMBEDDING_BASE_URL:https://api.openai.com/v1}
     embedding-api-key: ${EMBEDDING_API_KEY:}
     embedding-model: ${EMBEDDING_MODEL:text-embedding-3-small}
-
