@@ -10,6 +10,7 @@ import com.example.knowledge.mapper.DocumentChunkMapper;
 import com.example.knowledge.mapper.DocumentMapper;
 import com.example.knowledge.mapper.DocumentTagMapper;
 import com.example.knowledge.mapper.KnowledgeBaseMapper;
+import com.example.knowledge.rag.VectorStore;
 import com.example.knowledge.security.JwtPrincipal;
 import com.example.knowledge.vo.DocumentVO;
 import org.springframework.stereotype.Service;
@@ -25,12 +26,13 @@ public class DocumentService {
     private final DocumentMapper documentMapper; private final DocumentChunkMapper chunkMapper; private final DocumentTagMapper tagMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper; private final PermissionService permissionService; private final StorageService storageService;
     private final DocumentProcessService processService;
+    private final VectorStore vectorStore;
 
     public DocumentService(DocumentMapper documentMapper, DocumentChunkMapper chunkMapper, DocumentTagMapper tagMapper,
                            KnowledgeBaseMapper knowledgeBaseMapper, PermissionService permissionService, StorageService storageService,
-                           DocumentProcessService processService) {
+                           DocumentProcessService processService, VectorStore vectorStore) {
         this.documentMapper = documentMapper; this.chunkMapper = chunkMapper; this.tagMapper = tagMapper; this.knowledgeBaseMapper = knowledgeBaseMapper;
-        this.permissionService = permissionService; this.storageService = storageService; this.processService = processService;
+        this.permissionService = permissionService; this.storageService = storageService; this.processService = processService; this.vectorStore = vectorStore;
     }
 
     @Transactional
@@ -66,6 +68,7 @@ public class DocumentService {
     public void delete(Long id, JwtPrincipal user) throws IOException {
         Document document = find(id); permissionService.requireKnowledgeBaseAccess(document.getKnowledgeBaseId(), user, true);
         chunkMapper.delete(new QueryWrapper<com.example.knowledge.entity.DocumentChunk>().eq("document_id", id));
+        vectorStore.deleteByDocument(id);
         tagMapper.delete(new QueryWrapper<com.example.knowledge.entity.DocumentTag>().eq("document_id", id));
         documentMapper.deleteById(id); storageService.delete(document.getFilePath());
         knowledgeBaseMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<com.example.knowledge.entity.KnowledgeBase>()

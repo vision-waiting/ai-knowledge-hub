@@ -32,5 +32,19 @@ public class QdrantVectorStore implements VectorStore {
         });
         return result;
     }
-}
 
+    @Override
+    public void upsert(DocumentChunk chunk, List<Float> vector) {
+        client.put().uri("/collections/knowledge_chunks/points?wait=true").body(Map.of("points", List.of(Map.of("id", chunk.getId(), "vector", vector, "payload", Map.of("chunkId", chunk.getId(), "documentId", chunk.getDocumentId(), "knowledgeBaseId", chunk.getKnowledgeBaseId(), "pageNumber", chunk.getPageNumber(), "content", chunk.getContent()))))).retrieve().toBodilessEntity();
+    }
+
+    @Override
+    public void deleteByDocument(Long documentId) {
+        client.post().uri("/collections/knowledge_chunks/points/delete?wait=true").body(Map.of("filter", Map.of("must", List.of(Map.of("key", "documentId", "match", Map.of("value", documentId)))))).retrieve().toBodilessEntity();
+    }
+
+    @Override
+    public void deleteByKnowledgeBase(Long knowledgeBaseId) {
+        client.post().uri("/collections/knowledge_chunks/points/delete?wait=true").body(Map.of("filter", Map.of("must", List.of(Map.of("key", "knowledgeBaseId", "match", Map.of("value", knowledgeBaseId)))))).retrieve().toBodilessEntity();
+    }
+}

@@ -3,6 +3,7 @@ package com.example.knowledge.controller;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.knowledge.common.Result;
 import com.example.knowledge.entity.OperationLog;
+import com.example.knowledge.entity.SysUser;
 import com.example.knowledge.mapper.OperationLogMapper;
 import com.example.knowledge.mapper.SysUserMapper;
 import com.example.knowledge.service.DashboardService;
@@ -12,6 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
+import com.example.knowledge.dto.UserStatusRequest;
 
 import java.util.List;
 
@@ -27,7 +33,13 @@ public class AdminController {
     @GetMapping("/logs")
     public ResponseEntity<Result<List<OperationLog>>> logs() { return ResponseEntity.ok(Result.success(logMapper.selectList(Wrappers.<OperationLog>query().orderByDesc("created_at").last("limit 100")))); }
 
+    @PutMapping("/users/{id}/status")
+    public ResponseEntity<Result<Void>> updateStatus(@PathVariable Long id, @Valid @RequestBody UserStatusRequest request) {
+        SysUser user = userMapper.selectById(id);
+        if (user == null) return ResponseEntity.status(404).body(Result.failure(404, "用户不存在"));
+        user.setStatus(request.status()); userMapper.updateById(user); return ResponseEntity.ok(Result.success());
+    }
+
     @GetMapping("/statistics")
     public ResponseEntity<Result<DashboardOverviewVO>> statistics() { return ResponseEntity.ok(Result.success(dashboardService.overview())); }
 }
-

@@ -5,6 +5,8 @@ import com.example.knowledge.chat.ChatService;
 import com.example.knowledge.common.Result;
 import com.example.knowledge.security.CurrentUser;
 import com.example.knowledge.security.JwtPrincipal;
+import com.example.knowledge.vo.ChatSessionVO;
+import com.example.knowledge.vo.ChatMessageVO;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -43,5 +46,10 @@ public class ChatController {
         });
         return emitter;
     }
-}
 
+    @GetMapping("/sessions")
+    public com.example.knowledge.common.Result<List<ChatSessionVO>> sessions() { return com.example.knowledge.common.Result.success(service.listSessions(CurrentUser.require())); }
+
+    @GetMapping("/sessions/{sessionId}/messages")
+    public com.example.knowledge.common.Result<List<ChatMessageVO>> messages(@org.springframework.web.bind.annotation.PathVariable Long sessionId) { return com.example.knowledge.common.Result.success(service.listMessages(sessionId, CurrentUser.require())); }
+}

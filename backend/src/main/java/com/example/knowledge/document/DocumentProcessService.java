@@ -7,6 +7,8 @@ import com.example.knowledge.entity.DocumentTag;
 import com.example.knowledge.mapper.DocumentChunkMapper;
 import com.example.knowledge.mapper.DocumentMapper;
 import com.example.knowledge.mapper.DocumentTagMapper;
+import com.example.knowledge.rag.EmbeddingService;
+import com.example.knowledge.rag.VectorStore;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,10 +29,14 @@ public class DocumentProcessService {
     private final DocumentTagMapper tagMapper;
     private final List<DocumentParser> parsers;
     private final TextChunker chunker;
+    private final EmbeddingService embeddingService;
+    private final VectorStore vectorStore;
 
     public DocumentProcessService(DocumentMapper documentMapper, DocumentChunkMapper chunkMapper,
-                                  DocumentTagMapper tagMapper, List<DocumentParser> parsers, TextChunker chunker) {
+                                  DocumentTagMapper tagMapper, List<DocumentParser> parsers, TextChunker chunker,
+                                  EmbeddingService embeddingService, VectorStore vectorStore) {
         this.documentMapper = documentMapper; this.chunkMapper = chunkMapper; this.tagMapper = tagMapper; this.parsers = parsers; this.chunker = chunker;
+        this.embeddingService = embeddingService; this.vectorStore = vectorStore;
     }
 
     @Async
@@ -57,7 +63,7 @@ public class DocumentProcessService {
                     chunk.setChunkIndex(chunks.size()); chunks.add(chunk);
                 }
             }
-            chunks.forEach(chunkMapper::insert);
+            chunks.forEach(chunk -> { chunkMapper.insert(chunk); vectorStore.upsert(chunk, embeddingService.embed(chunk.getContent())); });
             updateStatus(document, "EMBEDDING", null);
             updateStatus(document, "INDEXING", null);
             document.setPageCount(parsed.pages().size());
@@ -85,4 +91,3 @@ public class DocumentProcessService {
         });
     }
 }
-
