@@ -21,7 +21,8 @@ export const useChatStore = defineStore('chat', () => {
         const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true })
         const blocks = buffer.split('\n\n'); buffer = blocks.pop() || ''
         for (const block of blocks) {
-          const event = block.match(/^event:\s*(.+)$/m)?.[1]; const data = block.match(/^data:\s*(.*)$/m)?.[1] || ''
+          const event = block.match(/^event:\s*(.+)$/m)?.[1]
+          const data = block.split(/\r?\n/).filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n')
           if (event === 'message') assistant.content += data
           if (event === 'citation') { try { assistant.citations?.push(JSON.parse(data) as Citation) } catch { /* ignore malformed event */ } }
           if (event === 'done') { try { sessionId.value = JSON.parse(data).data } catch { /* keep existing session */ } }
