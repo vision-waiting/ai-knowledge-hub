@@ -1,0 +1,2 @@
+<script setup lang="ts">import AppLayout from '@/layouts/AppLayout.vue'; import { useAuthStore } from '@/stores/auth'; const auth=useAuthStore();</script>
+<template><AppLayout><div class="page-heading"><div><p class="eyebrow">PROFILE</p><h1>个人中心</h1><p>查看当前登录账号信息。</p></div></div><div class="panel profile-panel"><div class="profile-avatar">{{ (auth.user?.nickname || 'U').slice(0,1) }}</div><div><h2>{{ auth.user?.nickname || auth.user?.username }}</h2><p>{{ auth.user?.username }} · {{ auth.user?.role === 'ADMIN' ? '管理员' : '普通用户' }}</p></div></div></AppLayout></template>
