@@ -10,4 +10,5 @@ frontend/.vite/
 .vscode/
 *.log
 .superpowers/
+.worktrees/
 
