@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
 
 @RestController
@@ -32,11 +33,21 @@ public class ChatController {
 
     public SseEmitter stream(Long sessionId, Long knowledgeBaseId, String question, JwtPrincipal user) {
         SseEmitter emitter = new SseEmitter(120_000L);
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        emitter.onCompletion(() -> cancelled.set(true));
+        emitter.onTimeout(() -> cancelled.set(true));
+        emitter.onError(error -> cancelled.set(true));
         CompletableFuture.runAsync(() -> {
             try {
-                ChatAnswer answer = service.answer(knowledgeBaseId, question, user, sessionId);
-                emitter.send(SseEmitter.event().name("message").data(answer.answer()));
+                ChatAnswer answer = service.answerStream(knowledgeBaseId, question, user, sessionId, fragment -> {
+                    if (!cancelled.get()) {
+                        try { emitter.send(SseEmitter.event().name("message").data(fragment)); }
+                        catch (IOException exception) { cancelled.set(true); throw new RuntimeException(exception); }
+                    }
+                }, cancelled::get);
+                if (cancelled.get()) return;
                 for (var citation : answer.citations()) emitter.send(SseEmitter.event().name("citation").data(citation));
+                if (cancelled.get()) return;
                 emitter.send(SseEmitter.event().name("done").data(new Result<>(200, "success", answer.sessionId(), System.currentTimeMillis())));
                 emitter.complete();
             } catch (Exception exception) {

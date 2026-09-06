@@ -12,5 +12,12 @@ class QueryRewriteServiceTest {
         QueryRewriteService service = new QueryRewriteService();
         assertEquals("Spring Boot 是什么？ 它和 Spring 有什么区别？", service.rewrite("它和 Spring 有什么区别？", List.of("Spring Boot 是什么？")));
     }
+
+    @Test
+    void followUpUsesNewestHistoryQuestion() {
+        QueryRewriteService service = new QueryRewriteService();
+        assertEquals("上一轮问题？ 它和 Spring 有什么区别？",
+                service.rewrite("它和 Spring 有什么区别？", List.of("上一轮问题？", "最旧问题？")));
+    }
 }
 

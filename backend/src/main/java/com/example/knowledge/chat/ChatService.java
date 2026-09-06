@@ -15,33 +15,46 @@ import com.example.knowledge.rag.CitationBuilder;
 import com.example.knowledge.rag.HybridRetriever;
 import com.example.knowledge.rag.RetrievalResult;
 import com.example.knowledge.security.JwtPrincipal;
+import com.example.knowledge.service.PermissionService;
 import com.example.knowledge.vo.ChatSessionVO;
 import com.example.knowledge.vo.ChatMessageVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 @Service
 public class ChatService {
     private final HybridRetriever retriever; private final AiService aiService; private final CitationBuilder citationBuilder;
     private final ChatSessionMapper sessionMapper; private final ChatMessageMapper messageMapper; private final QueryRewriteService rewriteService;
+    private final PermissionService permissionService;
     private final AiUsageLogMapper aiUsageLogMapper;
 
     public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
-                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService) {
-        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, null);
+                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, PermissionService permissionService) {
+        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, permissionService, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
-                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, AiUsageLogMapper aiUsageLogMapper) {
+                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, PermissionService permissionService,
+                       AiUsageLogMapper aiUsageLogMapper) {
         this.retriever = retriever; this.aiService = aiService; this.citationBuilder = citationBuilder; this.sessionMapper = sessionMapper; this.messageMapper = messageMapper; this.rewriteService = rewriteService;
+        this.permissionService = permissionService;
         this.aiUsageLogMapper = aiUsageLogMapper;
     }
 
     @Transactional
     public ChatAnswer answer(Long knowledgeBaseId, String question, JwtPrincipal user, Long sessionId) {
+        return answerStream(knowledgeBaseId, question, user, sessionId, chunk -> {}, () -> false);
+    }
+
+    @Transactional
+    public ChatAnswer answerStream(Long knowledgeBaseId, String question, JwtPrincipal user, Long sessionId,
+                                   Consumer<String> onChunk, BooleanSupplier cancelled) {
+        permissionService.requireKnowledgeBaseAccess(knowledgeBaseId, user, false);
         Long actualSessionId = ensureSession(knowledgeBaseId, question, user, sessionId);
         List<ChatMessage> historyMessages = messageMapper.selectList(new QueryWrapper<ChatMessage>().eq("session_id", actualSessionId).orderByDesc("created_at").last("limit 10"));
         List<String> history = historyMessages == null ? List.of() : historyMessages.stream().filter(item -> "USER".equals(item.getRole())).map(ChatMessage::getContent).toList();
@@ -51,10 +64,13 @@ public class ChatService {
         String answer; String mode;
         if (!retrieval.sufficient()) {
             answer = "当前知识库中没有找到足够相关的资料，因此无法基于当前知识库准确回答该问题。"; mode = "LOCAL_DEMO";
+            if (!cancelled.getAsBoolean()) onChunk.accept(answer);
         } else {
             long started = System.currentTimeMillis();
             try {
-                AiResponse response = aiService.generate(new AiRequest(rewritten, retrieval.items(), true)); answer = response.answer(); mode = response.mode();
+                StringBuilder streamed = new StringBuilder();
+                AiResponse response = aiService.stream(new AiRequest(rewritten, retrieval.items(), true), fragment -> { streamed.append(fragment); onChunk.accept(fragment); }, cancelled);
+                answer = streamed.length() == 0 ? response.answer() : streamed.toString(); mode = response.mode();
                 recordAiUsage(user, mode, System.currentTimeMillis() - started, true, null);
             } catch (RuntimeException exception) {
                 recordAiUsage(user, "ERROR", System.currentTimeMillis() - started, false, exception.getMessage()); throw exception;

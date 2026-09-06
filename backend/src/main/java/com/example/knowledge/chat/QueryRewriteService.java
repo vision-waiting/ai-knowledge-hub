@@ -9,7 +9,7 @@ public class QueryRewriteService {
         if (question == null || question.isBlank() || history == null || history.isEmpty()) return question;
         String trimmed = question.trim();
         if (trimmed.startsWith("它") || trimmed.startsWith("这") || trimmed.startsWith("该") || trimmed.startsWith("那个")) {
-            String previous = history.get(history.size() - 1).trim();
+            String previous = history.get(0).trim();
             return previous + " " + trimmed;
         }
         return trimmed;
