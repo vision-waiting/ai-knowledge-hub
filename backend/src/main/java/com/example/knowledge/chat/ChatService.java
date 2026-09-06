@@ -15,6 +15,7 @@ import com.example.knowledge.rag.CitationBuilder;
 import com.example.knowledge.rag.HybridRetriever;
 import com.example.knowledge.rag.RetrievalResult;
 import com.example.knowledge.security.JwtPrincipal;
+import com.example.knowledge.service.PermissionService;
 import com.example.knowledge.vo.ChatSessionVO;
 import com.example.knowledge.vo.ChatMessageVO;
 import org.springframework.stereotype.Service;
@@ -26,22 +27,36 @@ import java.util.List;
 public class ChatService {
     private final HybridRetriever retriever; private final AiService aiService; private final CitationBuilder citationBuilder;
     private final ChatSessionMapper sessionMapper; private final ChatMessageMapper messageMapper; private final QueryRewriteService rewriteService;
+    private final PermissionService permissionService;
     private final AiUsageLogMapper aiUsageLogMapper;
 
     public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
                        ChatMessageMapper messageMapper, QueryRewriteService rewriteService) {
-        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, null);
+        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, null, null);
+    }
+
+    public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
+                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, PermissionService permissionService) {
+        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, permissionService, null);
+    }
+
+    public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
+                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, AiUsageLogMapper aiUsageLogMapper) {
+        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, null, aiUsageLogMapper);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
-                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, AiUsageLogMapper aiUsageLogMapper) {
+                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, PermissionService permissionService,
+                       AiUsageLogMapper aiUsageLogMapper) {
         this.retriever = retriever; this.aiService = aiService; this.citationBuilder = citationBuilder; this.sessionMapper = sessionMapper; this.messageMapper = messageMapper; this.rewriteService = rewriteService;
+        this.permissionService = permissionService;
         this.aiUsageLogMapper = aiUsageLogMapper;
     }
 
     @Transactional
     public ChatAnswer answer(Long knowledgeBaseId, String question, JwtPrincipal user, Long sessionId) {
+        permissionService.requireKnowledgeBaseAccess(knowledgeBaseId, user, false);
         Long actualSessionId = ensureSession(knowledgeBaseId, question, user, sessionId);
         List<ChatMessage> historyMessages = messageMapper.selectList(new QueryWrapper<ChatMessage>().eq("session_id", actualSessionId).orderByDesc("created_at").last("limit 10"));
         List<String> history = historyMessages == null ? List.of() : historyMessages.stream().filter(item -> "USER".equals(item.getRole())).map(ChatMessage::getContent).toList();
