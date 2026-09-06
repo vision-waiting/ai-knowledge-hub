@@ -31,18 +31,8 @@ public class ChatService {
     private final AiUsageLogMapper aiUsageLogMapper;
 
     public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
-                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService) {
-        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, null, null);
-    }
-
-    public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
                        ChatMessageMapper messageMapper, QueryRewriteService rewriteService, PermissionService permissionService) {
         this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, permissionService, null);
-    }
-
-    public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
-                       ChatMessageMapper messageMapper, QueryRewriteService rewriteService, AiUsageLogMapper aiUsageLogMapper) {
-        this(retriever, aiService, citationBuilder, sessionMapper, messageMapper, rewriteService, null, aiUsageLogMapper);
     }
 
     @org.springframework.beans.factory.annotation.Autowired

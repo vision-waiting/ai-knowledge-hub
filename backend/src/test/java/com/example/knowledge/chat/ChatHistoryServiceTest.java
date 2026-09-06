@@ -7,6 +7,7 @@ import com.example.knowledge.rag.AiService;
 import com.example.knowledge.rag.CitationBuilder;
 import com.example.knowledge.rag.HybridRetriever;
 import com.example.knowledge.security.JwtPrincipal;
+import com.example.knowledge.service.PermissionService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -21,7 +22,7 @@ class ChatHistoryServiceTest {
     void listsOnlySessionsOwnedByCurrentUser() {
         ChatSession session = new ChatSession(); session.setId(2L); session.setUserId(7L); session.setKnowledgeBaseId(3L); session.setTitle("HashMap");
         ChatSessionMapper mapper = mock(ChatSessionMapper.class); when(mapper.selectList(any())).thenReturn(List.of(session));
-        ChatService service = new ChatService(mock(HybridRetriever.class), mock(AiService.class), mock(CitationBuilder.class), mapper, mock(ChatMessageMapper.class), new QueryRewriteService());
+        ChatService service = new ChatService(mock(HybridRetriever.class), mock(AiService.class), mock(CitationBuilder.class), mapper, mock(ChatMessageMapper.class), new QueryRewriteService(), mock(PermissionService.class));
         assertEquals(1, service.listSessions(new JwtPrincipal(7L, "student", "USER")).size());
     }
 }
