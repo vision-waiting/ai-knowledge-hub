@@ -3,7 +3,7 @@ package com.example.knowledge.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.knowledge.common.BusinessException;
 import com.example.knowledge.common.ErrorCode;
-import com.example.knowledge.document.DocumentProcessService;
+import com.example.knowledge.document.DocumentProcessWorker;
 import com.example.knowledge.document.StorageService;
 import com.example.knowledge.entity.Document;
 import com.example.knowledge.mapper.DocumentChunkMapper;
@@ -25,14 +25,14 @@ import java.util.List;
 public class DocumentService {
     private final DocumentMapper documentMapper; private final DocumentChunkMapper chunkMapper; private final DocumentTagMapper tagMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper; private final PermissionService permissionService; private final StorageService storageService;
-    private final DocumentProcessService processService;
+    private final DocumentProcessWorker processWorker;
     private final VectorStore vectorStore;
 
     public DocumentService(DocumentMapper documentMapper, DocumentChunkMapper chunkMapper, DocumentTagMapper tagMapper,
                            KnowledgeBaseMapper knowledgeBaseMapper, PermissionService permissionService, StorageService storageService,
-                           DocumentProcessService processService, VectorStore vectorStore) {
+                           DocumentProcessWorker processWorker, VectorStore vectorStore) {
         this.documentMapper = documentMapper; this.chunkMapper = chunkMapper; this.tagMapper = tagMapper; this.knowledgeBaseMapper = knowledgeBaseMapper;
-        this.permissionService = permissionService; this.storageService = storageService; this.processService = processService; this.vectorStore = vectorStore;
+        this.permissionService = permissionService; this.storageService = storageService; this.processWorker = processWorker; this.vectorStore = vectorStore;
     }
 
     @Transactional
@@ -44,7 +44,7 @@ public class DocumentService {
         documentMapper.insert(document);
         knowledgeBaseMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<com.example.knowledge.entity.KnowledgeBase>()
                 .eq("id", knowledgeBaseId).setSql("document_count = document_count + 1"));
-        processService.processAsync(document.getId());
+        processWorker.processAsync(document.getId());
         return toVO(document);
     }
 
@@ -78,7 +78,7 @@ public class DocumentService {
     @Transactional
     public DocumentVO reindex(Long id, JwtPrincipal user) {
         Document document = find(id); permissionService.requireKnowledgeBaseAccess(document.getKnowledgeBaseId(), user, true);
-        document.setStatus("WAITING"); document.setErrorMessage(null); documentMapper.updateById(document); processService.processAsync(id); return toVO(document);
+        document.setStatus("WAITING"); document.setErrorMessage(null); documentMapper.updateById(document); processWorker.processAsync(id); return toVO(document);
     }
 
     private Document find(Long id) { Document d = documentMapper.selectById(id); if (d == null) throw new BusinessException(ErrorCode.NOT_FOUND); return d; }

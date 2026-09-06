@@ -9,9 +9,9 @@ import com.example.knowledge.mapper.DocumentMapper;
 import com.example.knowledge.mapper.DocumentTagMapper;
 import com.example.knowledge.rag.EmbeddingService;
 import com.example.knowledge.rag.VectorStore;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,15 +39,11 @@ public class DocumentProcessService {
         this.embeddingService = embeddingService; this.vectorStore = vectorStore;
     }
 
-    @Async
-    public void processAsync(Long documentId) { process(documentId); }
-
     @Transactional
-    public void process(Long documentId) {
+    public void process(Long documentId) throws Exception {
         Document document = documentMapper.selectById(documentId);
         if (document == null) return;
-        try {
-            updateStatus(document, "PARSING", null);
+        updateStatus(document, "PARSING", null);
             DocumentParser parser = parsers.stream().filter(item -> item.supports(document.getFileType())).findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("没有找到对应的文档解析器"));
             ParsedDocument parsed;
@@ -63,16 +59,25 @@ public class DocumentProcessService {
                     chunk.setChunkIndex(chunks.size()); chunks.add(chunk);
                 }
             }
-            chunks.forEach(chunk -> { chunkMapper.insert(chunk); vectorStore.upsert(chunk, embeddingService.embed(chunk.getContent())); });
+            chunks.forEach(chunkMapper::insert);
             updateStatus(document, "EMBEDDING", null);
+            List<List<Float>> vectors = embeddingService.embedBatch(chunks.stream().map(DocumentChunk::getContent).toList());
+            if (vectors.size() != chunks.size()) throw new IllegalStateException("Embedding 数量与 Chunk 数量不一致");
             updateStatus(document, "INDEXING", null);
+            for (int i = 0; i < chunks.size(); i++) vectorStore.upsert(chunks.get(i), vectors.get(i));
             document.setPageCount(parsed.pages().size());
             document.setSummary(summary(parsed.text()));
             document.setStatus("SUCCESS"); document.setErrorMessage(null); documentMapper.updateById(document);
             saveTags(documentId, parsed.text());
-        } catch (Exception exception) {
-            document.setStatus("FAILED"); document.setErrorMessage(exception.getMessage() == null ? "文档处理失败" : exception.getMessage()); documentMapper.updateById(document);
-        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markFailed(Long documentId, Exception exception) {
+        chunkMapper.delete(new QueryWrapper<DocumentChunk>().eq("document_id", documentId));
+        tagMapper.delete(new QueryWrapper<DocumentTag>().eq("document_id", documentId));
+        vectorStore.deleteByDocument(documentId);
+        Document document = documentMapper.selectById(documentId);
+        if (document != null) { document.setStatus("FAILED"); document.setErrorMessage(exception.getMessage() == null ? "文档处理失败" : exception.getMessage()); documentMapper.updateById(document); }
     }
 
     private void updateStatus(Document document, String status, String error) {
