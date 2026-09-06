@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 @Service
 public class ChatService {
@@ -46,6 +48,12 @@ public class ChatService {
 
     @Transactional
     public ChatAnswer answer(Long knowledgeBaseId, String question, JwtPrincipal user, Long sessionId) {
+        return answerStream(knowledgeBaseId, question, user, sessionId, chunk -> {}, () -> false);
+    }
+
+    @Transactional
+    public ChatAnswer answerStream(Long knowledgeBaseId, String question, JwtPrincipal user, Long sessionId,
+                                   Consumer<String> onChunk, BooleanSupplier cancelled) {
         permissionService.requireKnowledgeBaseAccess(knowledgeBaseId, user, false);
         Long actualSessionId = ensureSession(knowledgeBaseId, question, user, sessionId);
         List<ChatMessage> historyMessages = messageMapper.selectList(new QueryWrapper<ChatMessage>().eq("session_id", actualSessionId).orderByDesc("created_at").last("limit 10"));
@@ -56,10 +64,13 @@ public class ChatService {
         String answer; String mode;
         if (!retrieval.sufficient()) {
             answer = "当前知识库中没有找到足够相关的资料，因此无法基于当前知识库准确回答该问题。"; mode = "LOCAL_DEMO";
+            if (!cancelled.getAsBoolean()) onChunk.accept(answer);
         } else {
             long started = System.currentTimeMillis();
             try {
-                AiResponse response = aiService.generate(new AiRequest(rewritten, retrieval.items(), true)); answer = response.answer(); mode = response.mode();
+                StringBuilder streamed = new StringBuilder();
+                AiResponse response = aiService.stream(new AiRequest(rewritten, retrieval.items(), true), fragment -> { streamed.append(fragment); onChunk.accept(fragment); }, cancelled);
+                answer = streamed.length() == 0 ? response.answer() : streamed.toString(); mode = response.mode();
                 recordAiUsage(user, mode, System.currentTimeMillis() - started, true, null);
             } catch (RuntimeException exception) {
                 recordAiUsage(user, "ERROR", System.currentTimeMillis() - started, false, exception.getMessage()); throw exception;
