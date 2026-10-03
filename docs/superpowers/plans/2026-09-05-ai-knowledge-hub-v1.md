@@ -12,7 +12,7 @@
 
 ## File Map
 
-### Backend (`backend/`)
+### Backend (`SpringBoot/`)
 
 - `pom.xml`: Spring Boot, Web, Validation, Security, JWT, MyBatis-Plus, MySQL, H2, Apache Tika/PDFBox, test dependencies.
 - `src/main/java/com/example/knowledge/KnowledgeApplication.java`: application entry point and async configuration.
@@ -30,7 +30,7 @@
 - `src/main/resources/schema.sql`, `data.sql`: database schema and demo admin/user seed.
 - `src/test/java/...`: unit and API tests.
 
-### Frontend (`frontend/`)
+### Frontend (`vue/`)
 
 - `package.json`, `vite.config.ts`, `tsconfig.json`: build and test setup.
 - `src/main.ts`, `src/App.vue`, `src/router/index.ts`: app shell and route guards.
@@ -55,8 +55,8 @@
 ### Task 1: Scaffold the workspace and local runtime
 
 **Files:**
-- Create: `backend/pom.xml`, `backend/src/main/java/com/example/knowledge/KnowledgeApplication.java`
-- Create: `frontend/package.json`, `frontend/vite.config.ts`, `frontend/src/main.ts`
+- Create: `SpringBoot/pom.xml`, `SpringBoot/src/main/java/com/example/knowledge/KnowledgeApplication.java`
+- Create: `vue/package.json`, `vue/vite.config.ts`, `vue/src/main.ts`
 - Create: `docker-compose.yml`, `.env.example`, `.gitignore`, `README.md`
 - Test: run Maven and npm dependency/build checks
 
@@ -86,7 +86,7 @@ The frontend `main.ts` must create and mount a Vue app with router and Pinia pro
 
 - [ ] **Step 4: Verify the empty scaffold**
 
-Run `mvn -q -DskipTests package` in `backend/` with `JAVA_HOME=D:\java\java21`, then run `npm install` and `npm run build` in `frontend/`. Expected: both commands exit 0.
+Run `mvn -q -DskipTests package` in `SpringBoot/` with `JAVA_HOME=D:\java\java21`, then run `npm install` and `npm run build` in `vue/`. Expected: both commands exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -98,10 +98,10 @@ git commit -m "chore: scaffold full stack workspace"
 ### Task 2: Implement common backend contracts and database schema
 
 **Files:**
-- Create: `backend/src/main/java/com/example/knowledge/common/Result.java`, `PageResult.java`, `ErrorCode.java`, `BusinessException.java`, `GlobalExceptionHandler.java`
-- Create: `backend/src/main/resources/application.yml`, `application-dev.yml`, `application-test.yml`
-- Create: `backend/src/main/resources/schema.sql`, `data.sql`, `sql/init.sql`
-- Test: `backend/src/test/java/com/example/knowledge/common/ResultTest.java`
+- Create: `SpringBoot/src/main/java/com/example/knowledge/common/Result.java`, `PageResult.java`, `ErrorCode.java`, `BusinessException.java`, `GlobalExceptionHandler.java`
+- Create: `SpringBoot/src/main/resources/application.yml`, `application-dev.yml`, `application-test.yml`
+- Create: `sql/schema.sql`, `data.sql`, `sql/init.sql`
+- Test: `SpringBoot/src/test/java/com/example/knowledge/common/ResultTest.java`
 
 - [ ] **Step 1: Write the failing common-contract test**
 
@@ -118,7 +118,7 @@ void successResultContainsCodeMessageDataAndTimestamp() {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run `mvn -q -Dtest=ResultTest test` in `backend/`. Expected: compilation failure because `Result` does not exist.
+Run `mvn -q -Dtest=ResultTest test` in `SpringBoot/`. Expected: compilation failure because `Result` does not exist.
 
 - [ ] **Step 3: Implement the contracts**
 
@@ -283,7 +283,7 @@ Run `mvn -q test`; expected: PASS. Commit `feat: add multi-turn streaming chat`.
 ### Task 8: Build frontend shell, auth, knowledge, and document workflows
 
 **Files:**
-- Create all files listed under `frontend/src/api`, `stores`, `layouts`, `components`, and views for Login, Dashboard, KnowledgeList, KnowledgeDetail, DocumentList.
+- Create all files listed under `vue/src/api`, `stores`, `layouts`, `components`, and views for Login, Dashboard, KnowledgeList, KnowledgeDetail, DocumentList.
 - Test: `src/stores/auth.spec.ts`, `src/components/FileUpload.spec.ts`, `src/router/index.spec.ts`
 
 - [ ] **Step 1: Write failing frontend tests**
@@ -309,8 +309,8 @@ Run focused Vitest tests and `npm run build`; expected: PASS. Commit `feat: add 
 ### Task 9: Build chat UI, citations, dashboard charts, and admin pages
 
 **Files:**
-- Create/modify `frontend/src/views/Chat.vue`, `ChatHistory.vue`, `Dashboard.vue`, `AdminUsers.vue`, `AdminLogs.vue`, `AdminStatistics.vue`
-- Create/modify `frontend/src/components/ChatMessage.vue`, `CitationCard.vue`, `StatCard.vue`, `src/utils/markdown.ts`, `src/stores/chat.ts`
+- Create/modify `vue/src/views/Chat.vue`, `ChatHistory.vue`, `Dashboard.vue`, `AdminUsers.vue`, `AdminLogs.vue`, `AdminStatistics.vue`
+- Create/modify `vue/src/components/ChatMessage.vue`, `CitationCard.vue`, `StatCard.vue`, `src/utils/markdown.ts`, `src/stores/chat.ts`
 - Test: `Chat.spec.ts`, `markdown.spec.ts`, `Dashboard.spec.ts`
 
 - [ ] **Step 1: Write failing UI tests**
@@ -341,7 +341,7 @@ Run all Vitest tests and `npm run build`; expected: PASS. Commit `feat: add chat
 
 **Files:**
 - Modify: `README.md`, `docker-compose.yml`, `.env.example`
-- Create: `backend/src/test/java/.../ApiIntegrationTest.java`, `frontend/tests/demo-flow.spec.ts`, `knowledge-data/java/README.md`
+- Create: `SpringBoot/src/test/java/.../ApiIntegrationTest.java`, `vue/tests/demo-flow.spec.ts`, `knowledge-data/java/README.md`
 - Create: `docs/architecture.md`, `docs/database.md`, `docs/api.md`, `docs/rag.md`, `docs/deployment.md`
 
 - [ ] **Step 1: Add backend integration tests**
@@ -366,7 +366,7 @@ cd ..\frontend; npm run test -- --run; npm run build
 cd ..; docker compose config
 ```
 
-Expected: all tests pass, frontend build succeeds, and Compose configuration is valid. Start the backend/frontend and manually execute the documented 5–10 minute demo path.
+Expected: all tests pass, frontend build succeeds, and Compose configuration is valid. Start the SpringBoot/frontend and manually execute the documented 5–10 minute demo path.
 
 - [ ] **Step 5: Commit and inspect the final diff**
 

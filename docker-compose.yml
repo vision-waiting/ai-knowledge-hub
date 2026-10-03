@@ -1,20 +1,56 @@
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: SpringBoot/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SERVER_PORT: 8080
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: 'true'
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_ENABLED: 'true'
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "127.0.0.1:${BACKEND_DOCKER_PORT:-8080}:8080"
+    volumes:
+      - uploads-data:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+  web:
+    build: ./vue
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8088}:80"
+    depends_on:
+      - backend
+
   mysql:
     image: mysql:8.4
     container_name: ai-knowledge-hub-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ai_knowledge_hub
-      MYSQL_USER: knowledge
-      MYSQL_PASSWORD: knowledge
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ai_knowledge_hub}
+      MYSQL_USER: ${MYSQL_USERNAME:-knowledge}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-knowledge}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:${MYSQL_DOCKER_PORT:-3307}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost -uroot --silent"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -24,7 +60,7 @@ services:
     container_name: ai-knowledge-hub-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -38,12 +74,12 @@ services:
     container_name: ai-knowledge-hub-qdrant
     restart: unless-stopped
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "127.0.0.1:${QDRANT_PORT:-6333}:6333"
     volumes:
       - qdrant-data:/qdrant/storage
 
   minio:
+    profiles: ["optional-storage"]
     image: minio/minio:latest
     container_name: ai-knowledge-hub-minio
     restart: unless-stopped
@@ -58,6 +94,7 @@ services:
       - minio-data:/data
 
 volumes:
+  uploads-data:
   mysql-data:
   redis-data:
   qdrant-data:

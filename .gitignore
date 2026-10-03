@@ -2,13 +2,16 @@
 .env.*
 !.env.example
 uploads/
-backend/target/
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
+SpringBoot/target/
+vue/node_modules/
+vue/dist/
+vue/.vite/
 .idea/
 .vscode/
 *.log
 .superpowers/
 .worktrees/
+.runtime/
+output/
+.playwright-cli/
 

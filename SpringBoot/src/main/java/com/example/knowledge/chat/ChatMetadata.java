@@ -1,0 +1,6 @@
+package com.example.knowledge.chat;
+
+public record ChatMetadata(Long sessionId, String mode, Long messageId, RetrievalTrace retrieval) {
+    public ChatMetadata(Long sessionId, String mode) { this(sessionId, mode, null, null); }
+    public ChatMetadata(Long sessionId, String mode, Long messageId) { this(sessionId, mode, messageId, null); }
+}

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     nickname VARCHAR(100),
     role VARCHAR(20) NOT NULL DEFAULT 'USER',
     status TINYINT NOT NULL DEFAULT 1,
+    token_version INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -18,7 +19,7 @@ CREATE TABLE IF NOT EXISTS knowledge_base (
 );
 CREATE TABLE IF NOT EXISTS document (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, knowledge_base_id BIGINT NOT NULL, file_name VARCHAR(255) NOT NULL, file_path VARCHAR(500) NOT NULL,
-    file_type VARCHAR(50), file_size BIGINT, page_count INT, status VARCHAR(30) NOT NULL, error_message VARCHAR(1000), summary TEXT,
+    file_type VARCHAR(50), file_size BIGINT, page_count INT, status VARCHAR(30) NOT NULL, error_message VARCHAR(1000), summary TEXT, summary_mode VARCHAR(32),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_doc_kb(knowledge_base_id), INDEX idx_doc_status(status)
 );
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS chat_session (
 );
 CREATE TABLE IF NOT EXISTS chat_message (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, session_id BIGINT NOT NULL, role VARCHAR(20) NOT NULL, content LONGTEXT NOT NULL,
-    token_count INT, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_message_session(session_id)
+    token_count INT, mode VARCHAR(32), citations_json LONGTEXT, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_message_session(session_id)
 );
 CREATE TABLE IF NOT EXISTS operation_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT, operation VARCHAR(100), method VARCHAR(20), request_uri VARCHAR(500), ip VARCHAR(100),

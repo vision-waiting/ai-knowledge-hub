@@ -12,24 +12,24 @@
 
 ## File Map
 
-- Modify `backend/src/main/java/com/example/knowledge/chat/ChatService.java`: enforce knowledge-base access, expose shared synchronous/streaming answer flow, and aggregate partial output.
-- Modify `backend/src/main/java/com/example/knowledge/chat/QueryRewriteService.java`: use the newest history item at index `0`.
-- Modify `backend/src/main/java/com/example/knowledge/rag/AiService.java`: add the cancellable stream contract with a synchronous fallback.
-- Modify `backend/src/main/java/com/example/knowledge/rag/LocalAiService.java`: emit local answer fragments and honor cancellation.
-- Modify `backend/src/main/java/com/example/knowledge/rag/OpenAiCompatibleAiService.java`: request provider streaming and parse provider SSE deltas.
-- Modify `backend/src/main/java/com/example/knowledge/controller/ChatController.java`: forward fragments, track emitter cancellation, and suppress `done` after cancellation.
-- Create `backend/src/main/java/com/example/knowledge/document/DocumentProcessWorker.java`: own the proxied `@Async` entry point and failure handling.
-- Modify `backend/src/main/java/com/example/knowledge/document/DocumentProcessService.java`: make the processing transaction propagate failures, split phases, and provide independent failure cleanup.
-- Modify `backend/src/main/java/com/example/knowledge/service/DocumentService.java`: inject the worker instead of calling an in-class async method.
-- Modify focused tests under `backend/src/test/java/com/example/knowledge/chat/`, `.../rag/`, and `.../document/`.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/chat/ChatService.java`: enforce knowledge-base access, expose shared synchronous/streaming answer flow, and aggregate partial output.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/chat/QueryRewriteService.java`: use the newest history item at index `0`.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/rag/AiService.java`: add the cancellable stream contract with a synchronous fallback.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/rag/LocalAiService.java`: emit local answer fragments and honor cancellation.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/rag/OpenAiCompatibleAiService.java`: request provider streaming and parse provider SSE deltas.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/controller/ChatController.java`: forward fragments, track emitter cancellation, and suppress `done` after cancellation.
+- Create `SpringBoot/src/main/java/com/example/knowledge/document/DocumentProcessWorker.java`: own the proxied `@Async` entry point and failure handling.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/document/DocumentProcessService.java`: make the processing transaction propagate failures, split phases, and provide independent failure cleanup.
+- Modify `SpringBoot/src/main/java/com/example/knowledge/service/DocumentService.java`: inject the worker instead of calling an in-class async method.
+- Modify focused tests under `SpringBoot/src/test/java/com/example/knowledge/chat/`, `.../rag/`, and `.../document/`.
 
 ## Task 1: Protect Chat Retrieval and Fix Follow-Up Context
 
 **Files:**
-- Modify: `backend/src/main/java/com/example/knowledge/chat/ChatService.java`
-- Modify: `backend/src/main/java/com/example/knowledge/chat/QueryRewriteService.java`
-- Modify: `backend/src/test/java/com/example/knowledge/chat/ChatServiceTest.java`
-- Modify: `backend/src/test/java/com/example/knowledge/chat/QueryRewriteServiceTest.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/chat/ChatService.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/chat/QueryRewriteService.java`
+- Modify: `SpringBoot/src/test/java/com/example/knowledge/chat/ChatServiceTest.java`
+- Modify: `SpringBoot/src/test/java/com/example/knowledge/chat/QueryRewriteServiceTest.java`
 
 - [ ] **Step 1: Write the failing authorization regression test**
 
@@ -54,7 +54,7 @@ void unauthorizedKnowledgeBaseCannotBeQueried() {
 
 - [ ] **Step 2: Run the focused test and confirm RED**
 
-Run from `backend/`:
+Run from `SpringBoot/`:
 
 ```powershell
 $env:JAVA_HOME='D:\java\java21'
@@ -104,7 +104,7 @@ Update existing unit-test constructors to pass mocked `AiUsageLogMapper` and `Pe
 
 ```powershell
 mvn -q -Dtest=ChatServiceTest,QueryRewriteServiceTest test
-git add backend/src/main/java/com/example/knowledge/chat backend/src/test/java/com/example/knowledge/chat
+git add SpringBoot/src/main/java/com/example/knowledge/chat SpringBoot/src/test/java/com/example/knowledge/chat
 git commit -m "fix: authorize chat retrieval and use latest history"
 ```
 
@@ -113,10 +113,10 @@ Expected: both focused test classes pass.
 ## Task 2: Add a Cancellable AI Fragment Stream
 
 **Files:**
-- Modify: `backend/src/main/java/com/example/knowledge/rag/AiService.java`
-- Modify: `backend/src/main/java/com/example/knowledge/rag/LocalAiService.java`
-- Modify: `backend/src/main/java/com/example/knowledge/rag/OpenAiCompatibleAiService.java`
-- Modify: `backend/src/test/java/com/example/knowledge/rag/LocalAiServiceTest.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/rag/AiService.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/rag/LocalAiService.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/rag/OpenAiCompatibleAiService.java`
+- Modify: `SpringBoot/src/test/java/com/example/knowledge/rag/LocalAiServiceTest.java`
 
 - [ ] **Step 1: Write the failing local stream tests**
 
@@ -179,7 +179,7 @@ In `OpenAiCompatibleAiService`, post the existing request body with `stream=true
 
 ```powershell
 mvn -q -Dtest=LocalAiServiceTest test
-git add backend/src/main/java/com/example/knowledge/rag backend/src/test/java/com/example/knowledge/rag/LocalAiServiceTest.java
+git add SpringBoot/src/main/java/com/example/knowledge/rag SpringBoot/src/test/java/com/example/knowledge/rag/LocalAiServiceTest.java
 git commit -m "feat: add cancellable AI answer streaming"
 ```
 
@@ -188,10 +188,10 @@ Expected: local synchronous and streaming tests pass.
 ## Task 3: Wire Streaming Through ChatService and ChatController
 
 **Files:**
-- Modify: `backend/src/main/java/com/example/knowledge/chat/ChatService.java`
-- Modify: `backend/src/main/java/com/example/knowledge/controller/ChatController.java`
-- Modify: `backend/src/test/java/com/example/knowledge/chat/ChatServiceTest.java`
-- Modify: `backend/src/test/java/com/example/knowledge/chat/ChatControllerSseTest.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/chat/ChatService.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/controller/ChatController.java`
+- Modify: `SpringBoot/src/test/java/com/example/knowledge/chat/ChatServiceTest.java`
+- Modify: `SpringBoot/src/test/java/com/example/knowledge/chat/ChatControllerSseTest.java`
 
 - [ ] **Step 1: Write failing service/controller stream tests**
 
@@ -224,7 +224,7 @@ In `ChatController`, create an `AtomicBoolean cancelled`. Register `onCompletion
 
 ```powershell
 mvn -q -Dtest=ChatServiceTest,ChatControllerSseTest test
-git add backend/src/main/java/com/example/knowledge/chat/ChatService.java backend/src/main/java/com/example/knowledge/controller/ChatController.java backend/src/test/java/com/example/knowledge/chat
+git add SpringBoot/src/main/java/com/example/knowledge/chat/ChatService.java SpringBoot/src/main/java/com/example/knowledge/controller/ChatController.java SpringBoot/src/test/java/com/example/knowledge/chat
 git commit -m "feat: stream chat answers with cancellation"
 ```
 
@@ -233,10 +233,10 @@ Expected: fragment ordering, citations, normal completion, and cancellation test
 ## Task 4: Move Async Scheduling Behind a Transactional Worker
 
 **Files:**
-- Create: `backend/src/main/java/com/example/knowledge/document/DocumentProcessWorker.java`
-- Modify: `backend/src/main/java/com/example/knowledge/document/DocumentProcessService.java`
-- Modify: `backend/src/main/java/com/example/knowledge/service/DocumentService.java`
-- Create: `backend/src/test/java/com/example/knowledge/document/DocumentProcessServiceTest.java`
+- Create: `SpringBoot/src/main/java/com/example/knowledge/document/DocumentProcessWorker.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/document/DocumentProcessService.java`
+- Modify: `SpringBoot/src/main/java/com/example/knowledge/service/DocumentService.java`
+- Create: `SpringBoot/src/test/java/com/example/knowledge/document/DocumentProcessServiceTest.java`
 
 - [ ] **Step 1: Write the failing processor tests**
 
@@ -299,7 +299,7 @@ Use `embedBatch(chunks.stream().map(DocumentChunk::getContent).toList())`, rejec
 
 ```powershell
 mvn -q -Dtest=DocumentProcessServiceTest test
-git add backend/src/main/java/com/example/knowledge/document backend/src/main/java/com/example/knowledge/service/DocumentService.java backend/src/test/java/com/example/knowledge/document/DocumentProcessServiceTest.java
+git add SpringBoot/src/main/java/com/example/knowledge/document SpringBoot/src/main/java/com/example/knowledge/service/DocumentService.java SpringBoot/src/test/java/com/example/knowledge/document/DocumentProcessServiceTest.java
 git commit -m "fix: make document processing transactional"
 ```
 
@@ -323,7 +323,7 @@ Expected: Maven exits with code `0` and all tests pass.
 - [ ] **Step 2: Run a source-level regression scan**
 
 ```powershell
-rg -n "history\.get\(history\.size\(\) - 1\)|processAsync\(Long documentId\).*process\(|emitter\.send\(SseEmitter\.event\(\)\.name\(\"message\"\).*answer\.answer\(\)" backend/src/main/java
+rg -n "history\.get\(history\.size\(\) - 1\)|processAsync\(Long documentId\).*process\(|emitter\.send\(SseEmitter\.event\(\)\.name\(\"message\"\).*answer\.answer\(\)" SpringBoot/src/main/java
 git diff --check
 git status --short
 ```

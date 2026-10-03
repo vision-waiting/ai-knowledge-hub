@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: ai-knowledge-hub-server
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      connect-timeout: 2s
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 52MB
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    max-http-request-header-size: 32KB
+  error:
+    include-message: never
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+knowledge:
+  ocr:
+    command: ${OCR_COMMAND:}
+    languages: ${OCR_LANGUAGES:chi_sim+eng}
+  web:
+    curl-command: ${CURL_COMMAND:curl}
+  redis-enabled: ${REDIS_ENABLED:false}
+  jwt-secret: ${JWT_SECRET:change-this-development-secret-to-at-least-32-chars}
+  jwt-expiration-hours: 24
+  upload-dir: ${UPLOAD_DIR:./uploads}
+  chunk-size: ${CHUNK_SIZE:800}
+  chunk-overlap: ${CHUNK_OVERLAP:100}
+  retrieval-threshold: ${RETRIEVAL_THRESHOLD:0.2}
+  context-max-chars: ${CONTEXT_MAX_CHARS:12000}
+  qdrant-enabled: ${QDRANT_ENABLED:false}
+  qdrant-url: http://${QDRANT_HOST:localhost}:${QDRANT_PORT:6333}
+  ai:
+    mode: ${AI_MODE:}
+    connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:10000}
+    read-timeout-ms: ${AI_READ_TIMEOUT_MS:60000}
+    requests-per-minute: ${AI_REQUESTS_PER_MINUTE:30}
+    llm-enabled: ${LLM_ENABLED:false}
+    llm-base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
+    llm-api-key: ${LLM_API_KEY:}
+    llm-model: ${LLM_MODEL:gpt-4o-mini}
+    embedding-enabled: ${EMBEDDING_ENABLED:false}
+    embedding-base-url: ${EMBEDDING_BASE_URL:https://api.openai.com/v1}
+    embedding-api-key: ${EMBEDDING_API_KEY:}
+    embedding-model: ${EMBEDDING_MODEL:text-embedding-3-small}
+management:
+  health:
+    redis:
+      enabled: ${REDIS_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        include: health

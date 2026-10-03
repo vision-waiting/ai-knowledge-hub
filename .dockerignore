@@ -1,0 +1,8 @@
+**
+!SpringBoot/
+!SpringBoot/pom.xml
+!SpringBoot/src/
+!SpringBoot/src/**
+!SpringBoot/Dockerfile
+!sql/
+!sql/*.sql
