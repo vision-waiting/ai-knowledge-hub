@@ -1,2 +1,0 @@
-<script setup lang="ts">import AppLayout from '@/layouts/AppLayout.vue';</script>
-<template><AppLayout><div class="page-heading"><div><p class="eyebrow">ADMIN / STATISTICS</p><h1>统计分析</h1><p>查看文档处理、问答和 AI 调用趋势。</p></div></div><div class="stats-grid"><div class="stat-card blue"><div><small>今日问答</small><strong>—</strong></div></div><div class="stat-card green"><div><small>文档处理成功率</small><strong>—</strong></div></div><div class="stat-card amber"><div><small>Chunk 数量</small><strong>—</strong></div></div></div></AppLayout></template>
