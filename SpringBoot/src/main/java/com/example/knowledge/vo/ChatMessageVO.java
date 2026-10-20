@@ -5,7 +5,11 @@ import com.example.knowledge.chat.RetrievalTrace;
 import com.example.knowledge.rag.Citation;
 public record ChatMessageVO(Long id, Long sessionId, String role, String content, Integer tokenCount,
                             LocalDateTime createdAt, String mode, List<Citation> citations, String feedback, String feedbackReason,
-                            RetrievalTrace retrieval) {
+                            RetrievalTrace retrieval, String model) {
+    public ChatMessageVO(Long id, Long sessionId, String role, String content, Integer tokenCount, LocalDateTime createdAt, String mode,
+                         List<Citation> citations, String feedback, String feedbackReason, RetrievalTrace retrieval) {
+        this(id, sessionId, role, content, tokenCount, createdAt, mode, citations, feedback, feedbackReason, retrieval, null);
+    }
     public ChatMessageVO(Long id, Long sessionId, String role, String content, Integer tokenCount, LocalDateTime createdAt, String mode,
                          List<Citation> citations, String feedback, String feedbackReason) {
         this(id, sessionId, role, content, tokenCount, createdAt, mode, citations, feedback, feedbackReason, null);

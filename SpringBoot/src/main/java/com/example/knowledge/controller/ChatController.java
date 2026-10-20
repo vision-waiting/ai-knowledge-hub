@@ -43,11 +43,16 @@ public class ChatController {
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@RequestParam Long knowledgeBaseId, @RequestParam String question,
-                             @RequestParam(required = false) Long sessionId) {
-        return stream(sessionId, knowledgeBaseId, question, CurrentUser.require());
+                             @RequestParam(required = false) Long sessionId,
+                             @RequestParam(required = false) String provider) {
+        return stream(sessionId, knowledgeBaseId, question, CurrentUser.require(), provider);
     }
 
     public SseEmitter stream(Long sessionId, Long knowledgeBaseId, String question, JwtPrincipal user) {
+        return stream(sessionId, knowledgeBaseId, question, user, null);
+    }
+
+    public SseEmitter stream(Long sessionId, Long knowledgeBaseId, String question, JwtPrincipal user, String provider) {
         SseEmitter emitter = new SseEmitter(120_000L);
         AtomicBoolean cancelled = new AtomicBoolean(false);
         AtomicReference<Future<?>> task = new AtomicReference<>();
@@ -76,7 +81,8 @@ public class ChatController {
                         try { emitter.send(SseEmitter.event().name("message").data(fragment)); }
                         catch (IOException exception) { cancelled.set(true); throw new RuntimeException(exception); }
                     }
-                }, cancelled::get, metadata -> send(emitter, "meta", metadata, cancelled));
+                }, cancelled::get, metadata -> send(emitter, "meta", metadata, cancelled), provider,
+                        status -> send(emitter, "status", status, cancelled));
                 if (cancelled.get()) return;
                 for (var citation : answer.citations()) emitter.send(SseEmitter.event().name("citation").data(citation));
                 if (cancelled.get()) return;

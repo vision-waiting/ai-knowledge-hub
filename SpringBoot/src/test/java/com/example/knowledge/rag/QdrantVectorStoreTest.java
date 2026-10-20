@@ -15,6 +15,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class QdrantVectorStoreTest {
+    @Test void configuredCollectionKeepsExistingIndexUntouched() throws Exception {
+        assertDoesNotThrow(() -> org.springframework.test.util.ReflectionTestUtils.setField(store, "collectionName", "knowledge_chunks_qwen3"));
+        AtomicReference<String> visited = new AtomicReference<>();
+        server.createContext("/collections/", exchange -> {
+            visited.set(exchange.getRequestURI().getPath());
+            byte[] response = "{\"result\":true}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response); exchange.close();
+        });
+        store.deleteByDocument(5L);
+        assertEquals("/collections/knowledge_chunks_qwen3/points/delete", visited.get());
+    }
     private HttpServer server;
     private QdrantVectorStore store;
     private final DocumentChunkMapper mapper = mock(DocumentChunkMapper.class);

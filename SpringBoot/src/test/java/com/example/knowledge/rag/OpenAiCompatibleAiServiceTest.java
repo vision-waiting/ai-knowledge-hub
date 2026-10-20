@@ -18,6 +18,46 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.*;
 
 class OpenAiCompatibleAiServiceTest {
+    @Test void billingFailureIsActionableWithoutExposingProviderBody() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/chat/completions", exchange -> {
+            byte[] bytes = "{\"message\":\"secret-provider-details\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(402, bytes.length); exchange.getResponseBody().write(bytes); exchange.close();
+        });
+        server.start(); var ai = service(server);
+        try {
+            var streamError = assertThrows(BusinessException.class, () -> ai.stream(request(), ignored -> {}, () -> false));
+            assertTrue(streamError.getMessage().contains("余额不足"));
+            assertFalse(streamError.getMessage().contains("secret-provider-details"));
+            assertTrue(assertThrows(BusinessException.class, () -> ai.generate(request())).getMessage().contains("余额不足"));
+        } finally { ai.close(); server.stop(0); }
+    }
+    @Test void localInferenceOptionsReachBothCompletionAndStreamingRequests() throws Exception {
+        var requests = new java.util.concurrent.CopyOnWriteArrayList<com.fasterxml.jackson.databind.JsonNode>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/chat/completions", exchange -> {
+            var body = new ObjectMapper().readTree(exchange.getRequestBody()); requests.add(body);
+            boolean streaming = body.path("stream").asBoolean();
+            String response = streaming
+                    ? "data: {\"choices\":[{\"delta\":{\"content\":\"answer\"}}]}\n\ndata: [DONE]\n\n"
+                    : "{\"choices\":[{\"message\":{\"content\":\"answer\"}}]}";
+            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", streaming ? "text/event-stream" : "application/json");
+            exchange.sendResponseHeaders(200, bytes.length); exchange.getResponseBody().write(bytes); exchange.close();
+        });
+        server.start();
+        var ai = service(server);
+        try {
+            assertDoesNotThrow(() -> org.springframework.test.util.ReflectionTestUtils.setField(ai, "reasoningEffort", "none"));
+            assertDoesNotThrow(() -> org.springframework.test.util.ReflectionTestUtils.setField(ai, "maxTokens", 768));
+            ai.generate(request()); ai.stream(request(), ignored -> {}, () -> false);
+            assertEquals(2, requests.size());
+            for (var body : requests) {
+                assertEquals("none", body.path("reasoning_effort").asText());
+                assertEquals(768, body.path("max_tokens").asInt());
+            }
+        } finally { ai.close(); server.stop(0); }
+    }
     @Test
     void providerMetadataResponseMustBeStructuredAndBounded() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);

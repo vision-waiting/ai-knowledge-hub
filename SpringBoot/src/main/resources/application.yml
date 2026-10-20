@@ -39,7 +39,14 @@ knowledge:
   context-max-chars: ${CONTEXT_MAX_CHARS:12000}
   qdrant-enabled: ${QDRANT_ENABLED:false}
   qdrant-url: http://${QDRANT_HOST:localhost}:${QDRANT_PORT:6333}
+  qdrant-collection: ${QDRANT_COLLECTION:knowledge_chunks}
   ai:
+    local-enabled: ${LOCAL_LLM_ENABLED:false}
+    cloud-base-url: ${CLOUD_LLM_BASE_URL:}
+    cloud-api-key: ${CLOUD_LLM_API_KEY:}
+    cloud-model: ${CLOUD_LLM_MODEL:}
+    cloud-reasoning-effort: ${CLOUD_LLM_REASONING_EFFORT:}
+    cloud-max-tokens: ${CLOUD_LLM_MAX_TOKENS:2048}
     mode: ${AI_MODE:}
     connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:10000}
     read-timeout-ms: ${AI_READ_TIMEOUT_MS:60000}
@@ -48,6 +55,8 @@ knowledge:
     llm-base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
     llm-api-key: ${LLM_API_KEY:}
     llm-model: ${LLM_MODEL:gpt-4o-mini}
+    reasoning-effort: ${LLM_REASONING_EFFORT:}
+    max-tokens: ${LLM_MAX_TOKENS:0}
     embedding-enabled: ${EMBEDDING_ENABLED:false}
     embedding-base-url: ${EMBEDDING_BASE_URL:https://api.openai.com/v1}
     embedding-api-key: ${EMBEDDING_API_KEY:}

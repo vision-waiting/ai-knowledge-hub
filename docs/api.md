@@ -1,6 +1,6 @@
 # API 快速参考
 
-所有 REST 响应使用 `{ code, message, data, timestamp }`。登录后把返回的 Token 放入 `Authorization: Bearer <token>`。
+普通业务 JSON 响应使用 `{ code, message, data, timestamp }`；文件下载返回文件流，流式问答使用 SSE。登录后把返回的 Token 放入 `Authorization: Bearer <token>`。示例中的成功返回值均位于 JSON 响应的 `data` 字段中。
 
 公开注册接口（无需登录）：
 
@@ -32,15 +32,35 @@ POST /api/knowledge-bases/{id}/documents
 Content-Type: multipart/form-data
 ```
 
+文件字段名为 `file`。HTTP 202 仅表示任务已接收；轮询 `GET /api/documents/{id}`，直到 `status` 为 `SUCCESS` 或 `FAILED`。
+
 ```http
 GET /api/chat/stream?knowledgeBaseId=1&question=HashMap如何工作
 Accept: text/event-stream
 ```
 
+可传 `sessionId` 延续本人在同一知识库中的会话。客户端使用可携带 Authorization 请求头的流式请求，按事件追加内容：
+
+| SSE 事件 | 数据与含义 |
+| --- | --- |
+| `meta` | 会话 ID、回答模式和检索信息 |
+| `message` | 答案片段，按到达顺序拼接 |
+| `citation` | 文档、页码、片段 ID 与摘录 |
+| `done` | 统一 Result 包装的会话 ID，表示正常完成 |
+| `error` | 错误说明，表示本次问答失败 |
+
+事件以空行分隔，以冒号开头的注释行不属于答案。网络读取可能拆开事件或 UTF-8 字符，应缓存不完整事件并使用流式解码；连接断开但未收到终止事件时不能认定回答完整。
 
 ## 知识库可见性与管理权限
 
-管理员可查看和管理全部启用的知识库；普通用户可读取自己或当前管理员创建的知识库，不能读取其他普通用户的知识库。管理员创建的知识库对普通用户提供文档阅读、下载、问答和关注更新；上传、重新索引、修改和删除仅限创建者或管理员。列表和详情返回 `ownerId`、`ownerUsername`、`ownerNickname`，管理界面显示创建者。创建者身份始终由登录账号确定。
+管理员可查看和管理全部启用的知识库；普通用户可读取自己创建、已共享或受邀加入的知识库。未共享且未受邀的其他用户个人库不可访问。列表和详情返回 `ownerId`、`ownerUsername`、`ownerNickname`，创建者身份由登录账号确定。
+
+| 身份 | 阅读、下载、问答 | 上传、重新索引、文档删除 | 知识库管理 |
+| --- | --- | --- | --- |
+| 所有者 / 系统管理员 | 是 | 是 | 是 |
+| MANAGER 成员 | 是 | 是 | 是 |
+| EDITOR 成员 | 是 | 是 | 否 |
+| VIEWER 成员 / 共享库读者 | 是 | 否 | 否 |
 
 ## 用户管理资料接口
 
@@ -50,7 +70,7 @@ Accept: text/event-stream
 
 ### 知识库共享
 
-创建和更新知识库支持 `shared` 布尔字段。普通用户默认创建个人知识库，可在编辑时开启或取消共享；管理员创建的知识库强制共享。省略 `shared` 的更新保留原状态。响应包含 `shared`、`sharingLocked` 和发布者 `ownerUsername` / `ownerNickname`。个人库对所有者、管理员和受邀成员开放；共享库对登录用户可读。文档编辑允许 EDITOR/MANAGER，知识库编辑与删除允许所有者、管理员和 MANAGER。
+创建和更新知识库支持 `shared` 布尔字段。所有账号默认创建私有知识库，可在编辑时开启或取消共享；管理员创建的库也遵守 shared 设置。省略 `shared` 的更新保留原状态。响应包含 `shared`、`sharingLocked`（兼容字段，始终 false）、`starred`、`starCount` 和发布者 `ownerUsername` / `ownerNickname`。个人库对所有者、管理员和受邀成员开放；共享库对登录用户可读。文档编辑允许 EDITOR/MANAGER，知识库编辑与删除允许所有者、管理员和 MANAGER。
 ## 功能扩展接口
 
 以下接口均需要登录，响应沿用统一 `Result` 格式。`{kb}` 为知识库 ID。
@@ -70,7 +90,7 @@ Accept: text/event-stream
 | `PUT /api/knowledge-bases/{kb}/members` | 按 username 设置 VIEWER、EDITOR、MANAGER 角色 |
 | `DELETE /api/knowledge-bases/{kb}/members/{userId}` | 移除成员 |
 | `GET/POST /api/knowledge-bases/{kb}/content` | 读取或新增 FAQ、TERM、READING 内容 |
-| `PUT/DELETE /api/knowledge-bases/{kb}/content/{id}` | 更新或删除维护内容 |
+| `PUT/DELETE /api/knowledge-bases/{kb}/content/{id}` | 更新或删除维护内容；PUT 必须携带读取时的 `baseVersion`，缺失返回 400、版本过期返回 409 |
 | `POST /api/knowledge-bases/{kb}/retrieval/debug` | `{question,topK}`；topK 为 1～20 |
 | `POST /api/knowledge-bases/{kb}/retrieval/evaluate` | `{topK,cases:[{question,expectedDocumentIds}]}`；1～30 条，空来源表示应拒答 |
 | `GET /api/knowledge-bases/{kb}/insights?days=30` | 管理者读取问答质量汇总与匿名知识缺口；days 为 1～180 |
@@ -84,9 +104,18 @@ Accept: text/event-stream
 
 ## 问答质量与可追溯
 
-- `POST /api/chat/sessions/{id}/messages`（流式问答）的 `meta` 事件与 `GET /api/chat/sessions/{id}/messages` 均返回 `retrieval` 字段：`{rewrittenQuery, topK, sufficient, latencyMs, chunks:[{chunkId, documentId, pageNumber, vectorScore, keywordScore, hybridScore}]}`。日常对话（SMALL_TALK）没有该字段。它记录实际送入回答的片段，便于解释「为什么这样回答」。
+- `GET /api/chat/stream`（流式问答）的 `meta` 事件与 `GET /api/chat/sessions/{id}/messages` 均返回 `retrieval` 字段：`{rewrittenQuery, topK, sufficient, latencyMs, chunks:[{chunkId, documentId, pageNumber, vectorScore, keywordScore, hybridScore}]}`。日常对话（SMALL_TALK）没有该字段。它记录实际送入回答的片段，便于解释「为什么这样回答」。
 - `GET /api/knowledge-bases/{kb}/insights` 返回 `{days, answeredCount, insufficientCount, helpfulCount, notHelpfulCount, openIssueCount, resolvedIssueCount, gaps:[{question, askCount, userCount, lastAskedAt}], hiddenGapCount}`。`gaps` 只包含**至少两名不同用户**提问过的「资料不足」问题，不返回提问者身份；只被单个用户提问过的数量记入 `hiddenGapCount`。需要管理者权限。
 - `POST /api/knowledge-bases/{kb}/retrieval/evaluate` 的结果会写入 `retrieval_evaluation_run` 表，响应新增 `id`、`datasetHash`（评测集内容哈希，相同即同一套标注问题）、`createdAt`。`GET .../retrieval/runs` 返回同样的汇总字段，用于比较不同时间的检索质量。
 - `GET /api/dashboard/recent` 返回 `{sessions, documents, failedDocuments, dueReviewCount}`，只包含当前用户可访问的知识库；`sessions` 为本人会话。
 
 部署和能力边界见 [功能扩展说明](feature-update-2026-09-20.md)。
+# 问答模型选择（2026-10）
+
+认证后的 `GET /api/system/chat-models` 返回 `{ defaultProvider, options: [{ id, label, model, configured }] }`，不返回密钥或服务地址。`configured` 仅表示配置齐全，不是健康检查。
+
+`GET /api/chat/stream` 新增可选参数 `provider=local|cloud`；缺省使用默认服务。未启用本地模式的旧部署使用 `provider=default`，保持原默认模型。非法来源、云端未配置直接报错，不回退。嵌入和检索配置保持共享。
+
+SSE 新增 `status` 文本事件用于排队/准备提示。完成时的 `meta` 新增可空 `model` 字段，消息历史也返回该字段。生成模式为 `LOCAL_MODEL` 或 `CLOUD_API`；旧 `LOCAL_DEMO` / `OPENAI_COMPATIBLE`、`SMALL_TALK`、`INSUFFICIENT_CONTEXT` 仍兼容。流中的错误保持 `error` 事件；HTTP 402 上游错误转为安全的余额不足提示，不透传原始错误正文。
+
+共享、收藏、修改建议与条目历史 API 见 [共享与协作](collaboration.md)。

@@ -44,7 +44,7 @@ onBeforeUnmount(() => { generation++ })
 
 <template>
   <AppLayout>
-    <div class="page-heading"><div><span class="section-kicker">知识库更新</span><h1>更新提醒</h1><p>关注的知识库有文档更新时，会在这里通知你。</p></div><div class="heading-actions"><el-button :icon="Refresh" :loading="loading" :disabled="busy" @click="load">刷新</el-button><el-button :icon="Check" :disabled="!unreadCount || loading || busy" @click="markRead()">全部已读</el-button></div></div>
+    <div class="page-heading"><div><span class="section-kicker">知识库更新</span><h1>更新提醒</h1><p>关注的知识库有文档或知识内容更新时，会在这里通知你。</p></div><div class="heading-actions"><el-button :icon="Refresh" :loading="loading" :disabled="busy" @click="load">刷新</el-button><el-button :icon="Check" :disabled="!unreadCount || loading || busy" @click="markRead()">全部已读</el-button></div></div>
     <div class="notification-toolbar"><span><strong>{{ unreadCount }}</strong> 条未读</span><el-switch v-model="unreadOnly" active-text="仅看未读" :disabled="loading || busy" @change="filterChanged" /></div>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon />
     <div v-loading="loading" class="notification-list" aria-live="polite">
@@ -53,7 +53,7 @@ onBeforeUnmount(() => { generation++ })
       </el-empty>
       <article v-for="item in items" :key="item.id" class="notification-item" :class="{ unread: !item.read }">
         <div class="notification-symbol" :class="{ failed: item.type === 'FAILED' }"><el-icon :size="21"><Bell /></el-icon></div>
-        <div class="notification-content"><div class="notification-meta"><router-link :to="`/knowledge/${item.knowledgeBaseId}`">{{ item.knowledgeBaseName }}</router-link><time :datetime="item.createdAt">{{ formatTime(item.createdAt) }}</time><span v-if="!item.read" class="unread-label">未读</span></div><h3>{{ item.message }}</h3><router-link :to="`/knowledge/${item.knowledgeBaseId}/documents`">查看知识库文档 →</router-link></div>
+        <div class="notification-content"><div class="notification-meta"><router-link :to="`/knowledge/${item.knowledgeBaseId}`">{{ item.knowledgeBaseName }}</router-link><time :datetime="item.createdAt">{{ formatTime(item.createdAt) }}</time><span v-if="!item.read" class="unread-label">未读</span></div><h3>{{ item.message }}</h3><router-link :to="item.type === 'CONTENT_UPDATED' ? `/workspace?knowledgeBaseId=${item.knowledgeBaseId}` : `/knowledge/${item.knowledgeBaseId}/documents`">{{ item.type === 'CONTENT_UPDATED' ? '查看知识内容 →' : '查看知识库文档 →' }}</router-link></div>
         <el-button v-if="!item.read" size="small" :disabled="busy || loading" @click="markRead(item)">标为已读</el-button>
       </article>
     </div>

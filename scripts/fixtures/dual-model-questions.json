@@ -1,0 +1,22 @@
+[
+  {"id":"01","question":"平台上传文档支持哪些文件格式？简要回答。","expected":"PDF、DOCX、PPTX、TXT、Markdown","terms":["PDF","DOCX","PPTX","TXT","Markdown"],"source":"文档接入规范.md"},
+  {"id":"02","question":"单个上传文件最大允许多大？","expected":"50 MB","terms":["50"],"source":"文档接入规范.md"},
+  {"id":"03","question":"旧版 DOC 和 PPT 文件上传前需要怎么处理？","expected":"转换为 DOCX/PPTX","terms":["DOCX","PPTX"],"source":"文档接入规范.md"},
+  {"id":"04","question":"TXT 和 Markdown 推荐使用什么编码？","expected":"UTF-8","terms":["UTF.?8"],"source":"文档接入规范.md"},
+  {"id":"05","question":"文档状态 SUCCESS 代表什么？","expected":"处理完成，可参与检索","terms":["完成"],"source":"文档接入规范.md"},
+  {"id":"06","question":"文档状态 EMBEDDING 和 INDEXING 分别代表什么？","expected":"生成向量、写入向量索引","terms":["向量","索引"],"source":"文档接入规范.md"},
+  {"id":"07","question":"ARCHIVED 和 TRASHED 文档是否参与新的问答检索？","expected":"不参与","terms":["不|排除"],"source":"文档接入规范.md"},
+  {"id":"08","question":"处理中的文件可以删除或重复提交索引吗？","expected":"不可以，需要等待处理结束","terms":["不|等待"],"source":"文档接入规范.md"},
+  {"id":"09","question":"成功文档重建索引，新版本失败后旧版本还可用吗？","expected":"可用，不会提前替换旧成功版本","terms":["旧|原","不|保留|仍"],"source":"文档接入规范.md"},
+  {"id":"10","question":"本地文件正文修改后，仅重新索引能读取新内容吗？","expected":"不能，需要上传新版本","terms":["上传","不|需"],"source":"文档接入规范.md"},
+  {"id":"11","question":"删除单个文档会立即永久删除原文件吗？","expected":"移入回收站，保留原文件，可恢复","terms":["回收站","保留|恢复"],"source":"文档接入规范.md"},
+  {"id":"12","question":"问答输入框如何换行？","expected":"Shift + Enter","terms":["Shift","Enter"],"source":"平台使用手册.md"},
+  {"id":"13","question":"问答会搜索所有知识库还是当前知识库？","expected":"当前知识库","terms":["当前"],"source":"平台使用手册.md"},
+  {"id":"14","question":"回答的引用卡片可以用来做什么？","expected":"查看原文片段、下载原文件","terms":["原文|片段"],"source":"平台使用手册.md"},
+  {"id":"15","question":"团队中 VIEWER、EDITOR、MANAGER 分别有哪些权限？","expected":"阅读、维护文档、管理知识库","terms":["VIEWER","EDITOR","MANAGER"],"source":"平台使用手册.md"},
+  {"id":"16","question":"用户修改密码后需要重新登录吗？","expected":"需要","terms":["重新登录"],"source":"平台使用手册.md"},
+  {"id":"17","question":"请继续解释其中 EDITOR 的权限。","followup":"15","expected":"可以维护文档","terms":["文档"],"source":"平台使用手册.md"},
+  {"id":"18","question":"你好","mode":"SMALL_TALK","expected":"日常对话，不调用模型"},
+  {"id":"19","question":"quantum banana spaceship 987654321","mode":"INSUFFICIENT_CONTEXT","expected":"资料不足，不编造答案"},
+  {"id":"20","question":"zyxwv quasar nebula 555999888","mode":"INSUFFICIENT_CONTEXT","expected":"资料不足，不提供无关引用"}
+]

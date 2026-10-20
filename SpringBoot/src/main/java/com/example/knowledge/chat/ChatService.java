@@ -50,6 +50,10 @@ public class ChatService {
     private final Set<Long> activeSessions = ConcurrentHashMap.newKeySet();
     private static final int RETRIEVAL_TOP_K = 5;
     private TransactionTemplate transactions;
+    private ChatModelRouter models;
+
+    @Autowired
+    void setModels(ChatModelRouter models) { this.models = models; }
 
     public ChatService(HybridRetriever retriever, AiService aiService, CitationBuilder citationBuilder, ChatSessionMapper sessionMapper,
                        ChatMessageMapper messageMapper, QueryRewriteService rewriteService, PermissionService permissionService) {
@@ -79,7 +83,14 @@ public class ChatService {
 
     public ChatAnswer answerStream(Long knowledgeBaseId, String question, JwtPrincipal user, Long sessionId,
                                   Consumer<String> onChunk, BooleanSupplier cancelled, Consumer<ChatMetadata> onMetadata) {
+        return answerStream(knowledgeBaseId, question, user, sessionId, onChunk, cancelled, onMetadata, null, ignored -> {});
+    }
+
+    public ChatAnswer answerStream(Long knowledgeBaseId, String question, JwtPrincipal user, Long sessionId,
+                                  Consumer<String> onChunk, BooleanSupplier cancelled, Consumer<ChatMetadata> onMetadata,
+                                  String provider, Consumer<String> onStatus) {
         validate(knowledgeBaseId, question, user);
+        ChatModelRouter.Selection selected = models == null ? null : models.select(provider);
         checkCancelled(cancelled);
         String normalizedQuestion = question.trim();
         Long actualSessionId = inTransaction(() -> ensureSession(knowledgeBaseId, normalizedQuestion, user, sessionId));
@@ -101,34 +112,41 @@ public class ChatService {
             checkCancelled(cancelled);
             String answer;
             String mode;
+            String model;
             List<Citation> citations;
             if (smallTalkReply != null) {
                 answer = smallTalkReply;
                 mode = "SMALL_TALK";
+                model = null;
                 citations = List.of();
                 onChunk.accept(answer);
             } else if (!retrieval.sufficient()) {
                 answer = AiService.INSUFFICIENT_CONTEXT;
                 mode = "INSUFFICIENT_CONTEXT";
+                model = null;
                 citations = List.of();
                 onChunk.accept(answer);
             } else {
                 long started = System.currentTimeMillis();
                 try {
                     StringBuilder streamed = new StringBuilder();
-                    AiResponse response = aiService.stream(new AiRequest(normalizedQuestion, retrieval.items(), true, conversation), fragment -> {
+                    AiRequest request = new AiRequest(normalizedQuestion, retrieval.items(), true, conversation);
+                    Consumer<String> fragments = fragment -> {
                         checkCancelled(cancelled);
                         streamed.append(fragment);
                         onChunk.accept(fragment);
-                    }, cancelled);
+                    };
+                    AiResponse response = selected == null ? aiService.stream(request, fragments, cancelled)
+                            : models.stream(selected, request, fragments, cancelled, onStatus);
                     checkCancelled(cancelled);
                     answer = streamed.isEmpty() ? response.answer() : streamed.toString();
                     mode = response.mode();
+                    model = selected == null ? null : selected.model();
                     if (answer == null || answer.isBlank()) throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
                     if (streamed.isEmpty()) onChunk.accept(answer);
-                    recordAiUsage(user, mode, System.currentTimeMillis() - started, true, null);
+                    recordAiUsage(user, mode, model, System.currentTimeMillis() - started, true, null);
                 } catch (RuntimeException exception) {
-                    recordAiUsage(user, aiService.mode(), System.currentTimeMillis() - started, false,
+                    recordAiUsage(user, selected == null ? aiService.mode() : selected.mode(), selected == null ? null : selected.model(), System.currentTimeMillis() - started, false,
                             exception instanceof CancellationException ? "请求已取消" : "AI 请求失败");
                     throw exception;
                 }
@@ -138,11 +156,11 @@ public class ChatService {
             checkCancelled(cancelled);
             Long savedAnswerId = inTransaction(() -> {
                 requireSession(actualSessionId, user);
-                Long messageId = saveMessage(actualSessionId, "ASSISTANT", answer, mode, citations, trace);
+                Long messageId = saveMessage(actualSessionId, "ASSISTANT", answer, mode, citations, trace, model);
                 touchSession(actualSessionId);
                 return messageId;
             });
-            onMetadata.accept(new ChatMetadata(actualSessionId, mode, savedAnswerId, trace));
+            onMetadata.accept(new ChatMetadata(actualSessionId, mode, savedAnswerId, trace, model));
             return new ChatAnswer(actualSessionId, answer, mode, citations);
         } finally { activeSessions.remove(actualSessionId); }
     }
@@ -167,7 +185,7 @@ public class ChatService {
         List<ChatMessage> messages = messageMapper.selectList(new QueryWrapper<ChatMessage>().eq("session_id", sessionId).orderByAsc("id"));
         return messages == null ? List.of() : messages.stream().map(item -> new ChatMessageVO(item.getId(), item.getSessionId(),
                 item.getRole(), item.getContent(), item.getTokenCount(), item.getCreatedAt(), item.getMode(), readCitations(item.getCitationsJson()), item.getFeedback(), item.getFeedbackReason(),
-                readTrace(item.getRetrievalJson()))).toList();
+                readTrace(item.getRetrievalJson()), item.getModel())).toList();
     }
 
     public void deleteSession(Long sessionId, JwtPrincipal user) {
@@ -228,7 +246,12 @@ public class ChatService {
     }
 
     private Long saveMessage(Long sessionId, String role, String content, String mode, List<Citation> citations, RetrievalTrace trace) {
+        return saveMessage(sessionId, role, content, mode, citations, trace, null);
+    }
+
+    private Long saveMessage(Long sessionId, String role, String content, String mode, List<Citation> citations, RetrievalTrace trace, String model) {
         ChatMessage message = new ChatMessage(); message.setSessionId(sessionId); message.setRole(role); message.setContent(content);
+        message.setModel(model);
         message.setMode(mode); message.setCreatedAt(LocalDateTime.now());
         try {
             message.setCitationsJson(objectMapper.writeValueAsString(citations));
@@ -256,9 +279,10 @@ public class ChatService {
         ChatSession update = new ChatSession(); update.setId(sessionId); update.setUpdatedAt(LocalDateTime.now()); sessionMapper.updateById(update);
     }
 
-    private void recordAiUsage(JwtPrincipal user, String mode, long duration, boolean success, String error) {
+    private void recordAiUsage(JwtPrincipal user, String mode, String model, long duration, boolean success, String error) {
         if (aiUsageLogMapper == null) return;
         AiUsageLog log = new AiUsageLog(); log.setUserId(user.userId()); log.setMode(mode); log.setDurationMs(duration);
+        log.setModel(model);
         log.setSuccess(success ? 1 : 0); log.setErrorMessage(error); aiUsageLogMapper.insert(log);
     }
 

@@ -18,6 +18,14 @@ public class NotificationPublisher {
     public void documentChanged(Document document, String type) {
         KnowledgeUpdate event = new KnowledgeUpdate(UUID.randomUUID().toString(), document.getKnowledgeBaseId(),
                 document.getId(), document.getFileName(), type, LocalDateTime.now());
+        publish(event);
+    }
+
+    public void contentChanged(long knowledgeBaseId, String title) {
+        publish(new KnowledgeUpdate(UUID.randomUUID().toString(), knowledgeBaseId, null, title, "CONTENT_UPDATED", LocalDateTime.now()));
+    }
+
+    private void publish(KnowledgeUpdate event) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override public void afterCommit() { deliver(event); }

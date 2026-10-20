@@ -103,7 +103,6 @@ try {
     }
 
     if (-not $backendHealthy) {
-        if (Test-Path -LiteralPath 'D:\java\java21\bin\java.exe') { $env:JAVA_HOME = 'D:\java\java21' }
         if ($env:JAVA_HOME) { $env:Path = "$env:JAVA_HOME\bin;$env:Path" }
         Require-Tool 'java'
         Require-Tool 'mvn.cmd'

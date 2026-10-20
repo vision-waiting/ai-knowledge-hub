@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ChatDotRound, Collection, DataAnalysis, Document, Fold, House, Setting, SwitchButton, Reading, Notebook, ArrowDown, Close } from '@element-plus/icons-vue'
 import NotificationBell from '@/components/NotificationBell.vue'
+import KnowledgeOrbit from '@/components/KnowledgeOrbit.vue'
 import { useAuthStore } from '@/stores/auth'
 import { systemStatus } from '@/api/system'
 import type { SystemStatus } from '@/types'
@@ -30,6 +31,7 @@ const groups = [
   ] },
 ]
 const visibleGroups = computed(() => groups.filter(group => group.id !== 'admin' || auth.isAdmin))
+const chapter = computed(() => visibleGroups.value.find(group => group.items.some(item => active(item.path))) || visibleGroups.value[0]!)
 const expanded = ref<Record<string, boolean>>({ common: true, learning: true, content: true, admin: true })
 const knowledgePage = computed(() => /^\/knowledge\/\d+(\/|$)/.test(route.path))
 const subpages: Record<string, string> = { documents: '文档', chat: '智能问答', analysis: '总结与对比', study: '学习助手', retrieval: '检索实验室', insights: '知识缺口' }
@@ -76,7 +78,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', resize))
     <div v-if="mobileOpen" class="nav-backdrop" @click="closeNavigation" />
     <aside id="primary-navigation" ref="sidebar" :class="['sidebar', { 'mobile-open': mobileOpen }]" :role="mobileOpen ? 'dialog' : undefined" :aria-modal="mobileOpen ? true : undefined" aria-label="主导航面板" @keydown="navigationKey">
       <div class="brand-row"><router-link class="brand" to="/dashboard"><span>智</span><div>智能知识中心<small>知识管理 · 智能问答</small></div></router-link><button v-if="mobileOpen" class="nav-close" aria-label="关闭导航" @click="closeNavigation"><el-icon><Close /></el-icon></button></div>
-      <nav aria-label="主导航">
+      <nav aria-label="书签导航">
         <section v-for="group in visibleGroups" :key="group.id" class="nav-group">
           <div v-if="group.id === 'common'" class="nav-caption">{{ group.label }}</div>
           <button v-else class="nav-group-toggle" :aria-expanded="expanded[group.id]" :aria-controls="`nav-${group.id}`" @click="expanded[group.id] = !expanded[group.id]">{{ group.label }}<el-icon :class="{ collapsed: !expanded[group.id] }"><ArrowDown /></el-icon></button>
@@ -85,9 +87,10 @@ onBeforeUnmount(() => window.removeEventListener('resize', resize))
           </div>
         </section>
       </nav>
-      <div class="sidebar-note">整理资料，让知识随时可用。</div>
+      <div class="sidebar-note"><el-icon class="sidebar-note-symbol" aria-hidden="true"><Reading /></el-icon><strong>留一点空间，给新知。</strong><span>整理资料，让知识随时可用。</span></div>
     </aside>
-    <main class="main-area" :inert="mobileOpen || undefined">
+    <div class="book-spread">
+      <section class="chapter-page" aria-label="章节概览" :inert="mobileOpen || undefined">
       <header class="topbar">
         <div class="topbar-title">
           <button ref="menuButton" class="mobile-menu" aria-label="打开导航" aria-controls="primary-navigation" :aria-expanded="mobileOpen" @click="openNavigation"><el-icon><Fold /></el-icon></button>
@@ -101,7 +104,16 @@ onBeforeUnmount(() => window.removeEventListener('resize', resize))
           <el-button text :icon="SwitchButton" title="退出登录" aria-label="退出登录" @click="logout" />
         </div>
       </header>
+        <router-link class="chapter-brand" to="/dashboard"><span>智</span>智能知识中心</router-link>
+        <div class="chapter-intro"><h2>{{ title }}</h2><p>留一点空间，给新知。<br />整理资料，让知识随时可用。</p></div>
+        <KnowledgeOrbit />
+        <div class="chapter-contents"><h3>{{ chapter.label }}</h3><router-link v-for="item in chapter.items" :key="item.path" :to="item.path" :aria-current="active(item.path) ? 'page' : undefined"><el-icon><component :is="item.icon" /></el-icon><span>{{ item.label }}</span><span class="chapter-rule" aria-hidden="true"></span><el-icon aria-hidden="true"><Reading /></el-icon></router-link></div>
+        <small class="chapter-footer">知识管理 · 智能问答</small>
+      </section>
+    <main class="main-area" :inert="mobileOpen || undefined">
+
       <section class="page-body"><slot /></section>
     </main>
+    </div>
   </div>
 </template>

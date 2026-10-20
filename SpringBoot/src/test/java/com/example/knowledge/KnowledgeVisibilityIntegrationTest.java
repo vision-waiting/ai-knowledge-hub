@@ -70,15 +70,15 @@ class KnowledgeVisibilityIntegrationTest {
         mvc.perform(delete("/api/knowledge-bases/" + another.getId()).header("Authorization", "Bearer " + tokens.createToken(admin))).andExpect(status().isOk());
     }
 
-    @Test void administratorsAlwaysPublishSharedLibraries() throws Exception {
+    @Test void administratorsCanChoosePrivateLibraries() throws Exception {
         String auth = "Bearer " + tokens.createToken(user("ADMIN"));
         var response = mvc.perform(post("/api/knowledge-bases").header("Authorization", auth)
             .contentType("application/json").content("{\"name\":\"admin-public\",\"shared\":false}"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.data.shared").value(true)).andReturn();
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.shared").value(false)).andReturn();
         long id = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getResponse().getContentAsString()).path("data").path("id").asLong();
         mvc.perform(put("/api/knowledge-bases/" + id).header("Authorization", auth)
             .contentType("application/json").content("{\"name\":\"admin-public\",\"shared\":false}"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.data.shared").value(true));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.shared").value(false));
     }
 
     @Test void sharedDocumentsAreReadableButCannotBeChangedByReaders() throws Exception {
@@ -120,6 +120,6 @@ class KnowledgeVisibilityIntegrationTest {
         SysUser u = new SysUser(); u.setUsername(java.util.UUID.randomUUID().toString()); u.setPassword("unused"); u.setRole(role); u.setStatus(1); users.insert(u); return u;
     }
     private KnowledgeBase base(SysUser owner) {
-        KnowledgeBase b = new KnowledgeBase(); b.setName("visibility-test"); b.setOwnerId(owner.getId()); b.setStatus(1); b.setDocumentCount(0); bases.insert(b); return b;
+        KnowledgeBase b = new KnowledgeBase(); b.setName("visibility-test"); b.setOwnerId(owner.getId()); b.setStatus(1); b.setShared("ADMIN".equals(owner.getRole())); b.setDocumentCount(0); bases.insert(b); return b;
     }
 }

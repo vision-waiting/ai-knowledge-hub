@@ -18,7 +18,8 @@ import java.util.HashMap;
 @Component
 @ConditionalOnProperty(name = "knowledge.qdrant-enabled", havingValue = "true")
 public class QdrantVectorStore implements VectorStore {
-    private static final String COLLECTION = "/collections/knowledge_chunks";
+    @Value("${knowledge.qdrant-collection:knowledge_chunks}")
+    private String collectionName = "knowledge_chunks";
     private final RestClient client;
     private final DocumentChunkMapper mapper;
     @org.springframework.beans.factory.annotation.Autowired
@@ -45,7 +46,7 @@ public class QdrantVectorStore implements VectorStore {
                     Map.of("key", "documentId", "match", Map.of("any", ids))));
         }
         ensureCollection(queryVector.size());
-        JsonNode root = client.post().uri(COLLECTION + "/points/search").body(Map.of("vector", queryVector, "limit", Math.min(limit, 100), "with_payload", true, "filter", scope)).retrieve().body(JsonNode.class);
+        JsonNode root = client.post().uri(collectionPath() + "/points/search").body(Map.of("vector", queryVector, "limit", Math.min(limit, 100), "with_payload", true, "filter", scope)).retrieve().body(JsonNode.class);
         List<VectorHit> result = new ArrayList<>();
         if (root != null && root.path("result").isArray()) root.path("result").forEach(item -> {
             long chunkId = item.path("payload").path("chunkId").asLong(0); DocumentChunk chunk = mapper.selectById(chunkId);
@@ -68,7 +69,7 @@ public class QdrantVectorStore implements VectorStore {
         payload.put("documentId", chunk.getDocumentId());
         payload.put("knowledgeBaseId", chunk.getKnowledgeBaseId());
         if (chunk.getPageNumber() != null) payload.put("pageNumber", chunk.getPageNumber());
-        client.put().uri(COLLECTION + "/points?wait=true").body(Map.of("points", List.of(Map.of("id", chunk.getId(), "vector", vector, "payload", payload)))).retrieve().toBodilessEntity();
+        client.put().uri(collectionPath() + "/points?wait=true").body(Map.of("points", List.of(Map.of("id", chunk.getId(), "vector", vector, "payload", payload)))).retrieve().toBodilessEntity();
     }
 
     @Override
@@ -83,7 +84,7 @@ public class QdrantVectorStore implements VectorStore {
 
     private void deleteByFilter(String key, Long value) {
         try {
-            client.post().uri(COLLECTION + "/points/delete?wait=true").body(Map.of("filter", filter(key, value)))
+            client.post().uri(collectionPath() + "/points/delete?wait=true").body(Map.of("filter", filter(key, value)))
                     .retrieve().toBodilessEntity();
         } catch (HttpClientErrorException.NotFound ignored) { collectionDimension = 0; }
     }
@@ -95,20 +96,22 @@ public class QdrantVectorStore implements VectorStore {
     private synchronized void ensureCollection(int dimension) {
         if (collectionDimension != 0) { requireDimension(collectionDimension, dimension); return; }
         try {
-            JsonNode collection = client.get().uri(COLLECTION).retrieve().body(JsonNode.class);
+            JsonNode collection = client.get().uri(collectionPath()).retrieve().body(JsonNode.class);
             int existing = collection == null ? 0 : collection.path("result").path("config").path("params").path("vectors").path("size").asInt();
             requireDimension(existing, dimension);
         } catch (HttpClientErrorException.NotFound missing) {
             try {
-                client.put().uri(COLLECTION).body(Map.of("vectors", Map.of("size", dimension, "distance", "Cosine")))
+                client.put().uri(collectionPath()).body(Map.of("vectors", Map.of("size", dimension, "distance", "Cosine")))
                         .retrieve().toBodilessEntity();
             } catch (HttpClientErrorException.Conflict createdConcurrently) {
-                JsonNode collection = client.get().uri(COLLECTION).retrieve().body(JsonNode.class);
+                JsonNode collection = client.get().uri(collectionPath()).retrieve().body(JsonNode.class);
                 requireDimension(collection.path("result").path("config").path("params").path("vectors").path("size").asInt(), dimension);
             }
         }
         collectionDimension = dimension;
     }
+
+    private String collectionPath() { return "/collections/" + collectionName; }
 
     private void requireDimension(int existing, int expected) {
         if (existing != expected) throw new IllegalStateException("Qdrant 向量维度为 " + existing + "，当前 Embedding 维度为 " + expected + "；请迁移集合后重新索引");

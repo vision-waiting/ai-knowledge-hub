@@ -30,6 +30,16 @@ it('names the knowledge base and its subpage in breadcrumbs', async () => {
   expect(wrapper.get('.topbar-title').text()).toContain('文档')
   wrapper.unmount()
 })
+
+it('shows the current chapter on the left page and the workspace on the right', async () => {
+  const { wrapper, router } = await setup('/study')
+  expect(wrapper.get('.chapter-page h2').text()).toBe('学习助手')
+  expect(wrapper.get('.chapter-page a[href="/notes"]').text()).toContain('个人笔记')
+  expect(wrapper.find('.book-spread > .main-area').exists()).toBe(true)
+  await router.push('/knowledge'); await flushPromises()
+  expect(wrapper.get('.chapter-page h2').text()).toBe('知识库')
+  wrapper.unmount()
+})
 it('links a changed tool scope to the matching library', async () => {
   const { wrapper } = await setup('/knowledge/3/analysis')
   await wrapper.setProps({ contextName: '新资料', contextId: 9 } as never)

@@ -6,7 +6,7 @@ export interface KnowledgeNotification {
   knowledgeBaseName: string
   documentId: number | null
   documentName: string
-  type: 'UPLOADED' | 'REINDEXED' | 'SUCCESS' | 'FAILED' | 'DELETED'
+  type: 'UPLOADED' | 'REINDEXED' | 'SUCCESS' | 'FAILED' | 'DELETED' | 'RESTORED' | 'CONTENT_UPDATED'
   message: string
   read: boolean
   createdAt: string

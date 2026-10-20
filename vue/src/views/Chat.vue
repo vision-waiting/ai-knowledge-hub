@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Delete, Plus, Promotion, VideoPause, ChatDotRound, DocumentChecked } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -9,6 +9,7 @@ import { useChatStore } from '@/stores/chat'
 import { getKnowledgeBase } from '@/api/knowledge'
 import { deleteSession, listSessions } from '@/api/chat'
 import { http } from '@/api/http'
+import { chatModels, type ChatModelOption } from '@/api/system'
 import { errorMessage } from '@/utils/errors'
 import type { KnowledgeBase, ChatSession } from '@/types'
 
@@ -16,6 +17,21 @@ const route = useRoute(); const router = useRouter(); const chat = useChatStore(
 const item = ref<KnowledgeBase>(); const sessions = ref<ChatSession[]>([]); const question = ref('')
 const messagesElement = ref<HTMLElement>(); const pageError = ref(''); const sessionsLoading = ref(false)
 const awayFromBottom = ref(false)
+const modelOptions = ref<ChatModelOption[]>([])
+const provider = ref('local')
+const modelsError = ref('')
+const modelsLoading = ref(true)
+const selectedModel = computed(() => modelOptions.value.find(option => option.id === provider.value))
+async function loadModels() {
+  modelsLoading.value = true; modelsError.value = ''
+  try {
+    const result = await chatModels()
+    modelOptions.value = result.options
+    provider.value = result.defaultProvider
+  } catch (cause) { modelsError.value = errorMessage(cause, '模型配置加载失败，请重试') }
+  finally { modelsLoading.value = false }
+}
+onMounted(loadModels)
 const defaultExamples = ['这份资料的核心内容是什么？', '请整理资料中的使用步骤', '有哪些需要注意的事项？']
 const faqExamples = ref<string[]>([])
 const examples = computed(() => faqExamples.value.length ? faqExamples.value : defaultExamples)
@@ -70,13 +86,13 @@ async function initialize() {
 }
 async function send() {
   const value = question.value.trim()
-  if (!value || chat.loading || chat.historyLoading || !item.value) return
+  if (!value || chat.loading || chat.historyLoading || !item.value || !selectedModel.value?.configured) return
   const current = ++sendRequest
   const selectedKnowledgeBase = kbId.value
   question.value = ''
   awayFromBottom.value = false
   void jumpToLatest()
-  await chat.send(selectedKnowledgeBase, value)
+  await chat.send(selectedKnowledgeBase, value, provider.value)
   if (current !== sendRequest || chat.knowledgeBaseId !== selectedKnowledgeBase) return
   await loadSessions()
   if (current === sendRequest && chat.sessionId) await router.replace({ query: { session: chat.sessionId } })
@@ -134,8 +150,32 @@ onBeforeUnmount(() => { routeRequest++; sendRequest++; chat.stop() })
           <div v-if="chat.loading" class="sr-only" role="status">正在生成回答</div>
         </div>
         <button v-if="awayFromBottom" class="latest-message" @click="jumpToLatest">↓ 回到最新</button>
-        <form class="composer" @submit.prevent="send"><textarea v-model="question" rows="2" maxlength="4000" placeholder="针对当前知识库提问，Shift + Enter 换行" aria-label="问题" :disabled="chat.historyLoading || !item" @keydown.enter.exact="event => { if (!event.isComposing) { event.preventDefault(); send() } }" /><div class="composer-footer"><span>{{ question.length }} / 4000</span><div><el-button v-if="chat.loading" :icon="VideoPause" @click="chat.stop">停止</el-button><el-button type="primary" :icon="Promotion" :disabled="chat.loading || chat.historyLoading || !question.trim() || !item" native-type="submit">发送</el-button></div></div></form>
+        <form class="composer" @submit.prevent="send">
+          <div class="model-controls">
+            <label for="chat-model-provider">回答模型</label>
+            <select id="chat-model-provider" v-model="provider" :disabled="chat.loading || modelsLoading || !!modelsError" aria-describedby="chat-model-description">
+              <option v-for="option in modelOptions" :key="option.id" :value="option.id" :disabled="!option.configured">{{ option.label }}{{ option.configured ? '' : '（未配置）' }}</option>
+            </select>
+            <span class="model-name">{{ modelsLoading ? '加载中…' : selectedModel?.model }}</span>
+          </div>
+          <p v-if="modelsError" class="model-error" role="alert">{{ modelsError }} <button type="button" class="ghost-button" @click="loadModels">重试</button></p>
+          <p v-else id="chat-model-description" class="model-description">{{ provider === 'cloud' ? '将问题、会话上下文和相关资料片段发送至云端 API，按服务商规则计费。' : provider === 'local' ? '默认在本机生成回答；繁忙时排队，不会自动切换到云端。' : '使用管理员配置的默认服务，可能连接远端模型；具体处理位置请向管理员确认。' }}</p>
+          <textarea v-model="question" rows="2" maxlength="4000" placeholder="针对当前知识库提问，Shift + Enter 换行" aria-label="问题" :disabled="chat.historyLoading || !item" @keydown.enter.exact="event => { if (!event.isComposing) { event.preventDefault(); send() } }" />
+          <p v-if="chat.loading && chat.status" class="model-description" role="status">{{ chat.status }}</p>
+          <div class="composer-footer"><span>{{ question.length }} / 4000</span><div><el-button v-if="chat.loading" :icon="VideoPause" @click="chat.stop">停止</el-button><el-button type="primary" :icon="Promotion" :disabled="chat.loading || chat.historyLoading || !question.trim() || !item || !selectedModel?.configured" native-type="submit">发送</el-button></div></div>
+        </form>
       </section>
     </div>
   </AppLayout>
 </template>
+<style scoped>
+.model-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; font-size: 13px; }
+.model-controls label { font-weight: 600; }
+.model-controls select { font: inherit; color: inherit; background: var(--el-fill-color-blank); border: 1px solid var(--el-border-color); border-radius: 6px; padding: 7px 10px; max-width: 100%; }
+.model-controls select:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+.model-controls select:disabled { cursor: not-allowed; opacity: .65; }
+.model-name { overflow-wrap: anywhere; color: var(--el-text-color-regular); }
+.model-description { margin: 8px 0 10px; color: var(--el-text-color-regular); font-size: 12px; line-height: 1.6; }
+.model-error { color: var(--el-color-danger); font-size: 13px; }
+@media (max-width: 600px) { .model-name { flex-basis: 100%; } }
+</style>

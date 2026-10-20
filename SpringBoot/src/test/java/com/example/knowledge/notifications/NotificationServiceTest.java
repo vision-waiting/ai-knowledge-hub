@@ -89,15 +89,15 @@ class NotificationServiceTest {
         assertThat(service.unreadCount(owner)).isZero();
     }
 
-    @Test void sharedAdminKnowledgeNotifiesReadersAndRevokesAccessAfterDowngrade() {
-        jdbc.update("UPDATE knowledge_base SET owner_id=3 WHERE id=10");
+    @Test void sharedAdminKnowledgeNotifiesReadersAndWithdrawalRevokesAccess() {
+        jdbc.update("UPDATE knowledge_base SET owner_id=3,shared=TRUE WHERE id=10");
         service.follow(10L, stranger);
         service.record(event("shared-admin", LocalDateTime.now().plusSeconds(1)));
         assertThat(service.unreadCount(stranger)).isOne();
         long id = service.list(stranger, false, 1, 20).items().getFirst().id();
         service.markRead(id, stranger);
         assertThat(service.unreadCount(stranger)).isZero();
-        jdbc.update("UPDATE sys_user SET role='USER' WHERE id=3");
+        jdbc.update("UPDATE knowledge_base SET shared=FALSE WHERE id=10");
         assertThat(service.list(stranger, false, 1, 20).total()).isZero();
         service.record(event("after-creator-downgrade", LocalDateTime.now().plusSeconds(1)));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM user_notification WHERE user_id=2", Long.class)).isOne();

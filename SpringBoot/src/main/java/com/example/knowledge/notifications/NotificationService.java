@@ -19,11 +19,11 @@ public class NotificationService {
     private final JdbcTemplate jdbc;
     private final PermissionService permissions;
     private static final Map<String, String> LABELS = Map.of("UPLOADED", "已上传，等待处理", "REINDEXED", "已提交重新索引",
-            "SUCCESS", "已完成处理", "FAILED", "处理失败，请查看文档详情", "DELETED", "已移入回收站", "RESTORED", "已从回收站恢复");
+            "SUCCESS", "已完成处理", "FAILED", "处理失败，请查看文档详情", "DELETED", "已移入回收站", "RESTORED", "已从回收站恢复", "CONTENT_UPDATED", "知识内容已更新");
     // Check live user and knowledge-base state even for historical entries.
     private static final String VISIBLE = " FROM user_notification n JOIN knowledge_update_event e ON e.event_key=n.event_key "
             + "JOIN knowledge_base k ON k.id=e.knowledge_base_id JOIN sys_user u ON u.id=n.user_id "
-            + "WHERE n.user_id=? AND u.status=1 AND k.status=1 AND (k.owner_id=u.id OR EXISTS (SELECT 1 FROM knowledge_member member WHERE member.knowledge_base_id=k.id AND member.user_id=u.id) OR k.shared=TRUE OR UPPER(u.role)='ADMIN' OR EXISTS (SELECT 1 FROM sys_user creator WHERE creator.id=k.owner_id AND UPPER(creator.role)='ADMIN')) ";
+            + "WHERE n.user_id=? AND u.status=1 AND k.status=1 AND (k.owner_id=u.id OR EXISTS (SELECT 1 FROM knowledge_member member WHERE member.knowledge_base_id=k.id AND member.user_id=u.id) OR k.shared=TRUE OR UPPER(u.role)='ADMIN') ";
 
     public NotificationService(JdbcTemplate jdbc, PermissionService permissions) { this.jdbc = jdbc; this.permissions = permissions; }
 
@@ -58,7 +58,7 @@ public class NotificationService {
         jdbc.update("INSERT INTO user_notification(user_id,event_key) SELECT s.user_id,? FROM knowledge_subscription s "
                 + "JOIN knowledge_base k ON k.id=s.knowledge_base_id JOIN sys_user u ON u.id=s.user_id "
                 + "WHERE s.knowledge_base_id=? AND s.followed_at<=? AND k.status=1 AND u.status=1 "
-                + "AND (k.owner_id=u.id OR EXISTS (SELECT 1 FROM knowledge_member member WHERE member.knowledge_base_id=k.id AND member.user_id=u.id) OR k.shared=TRUE OR UPPER(u.role)='ADMIN' OR EXISTS (SELECT 1 FROM sys_user creator WHERE creator.id=k.owner_id AND UPPER(creator.role)='ADMIN'))", event.eventKey(), event.knowledgeBaseId(), event.occurredAt());
+                + "AND (k.owner_id=u.id OR EXISTS (SELECT 1 FROM knowledge_member member WHERE member.knowledge_base_id=k.id AND member.user_id=u.id) OR k.shared=TRUE OR UPPER(u.role)='ADMIN')", event.eventKey(), event.knowledgeBaseId(), event.occurredAt());
     }
 
     public long unreadCount(JwtPrincipal user) {

@@ -10,6 +10,7 @@ import javax.sql.DataSource;
 
 /** Additive upgrades preserve existing installations and their documents. */
 @Component
+@DependsOn("productionConfiguration")
 public class SchemaMigration implements InitializingBean {
     private final DataSource dataSource;
     private final JdbcTemplate jdbc;
@@ -18,6 +19,7 @@ public class SchemaMigration implements InitializingBean {
         new ResourceDatabasePopulator(new ClassPathResource("schema.sql")).execute(dataSource);
         addColumn("sys_user", "token_version", "INT NOT NULL DEFAULT 0");
         addColumn("chat_message", "mode", "VARCHAR(32)");
+        addColumn("chat_message", "model", "VARCHAR(255)");
         addColumn("chat_message", "citations_json", "LONGTEXT");
         addColumn("chat_message", "feedback", "VARCHAR(20)");
         addColumn("chat_message", "feedback_reason", "VARCHAR(200)");
@@ -30,7 +32,7 @@ public class SchemaMigration implements InitializingBean {
         addColumn("document", "deleted_at", "TIMESTAMP");
         addColumn("document", "deleted_status", "VARCHAR(20)");
         addColumn("knowledge_base", "shared", "BOOLEAN NOT NULL DEFAULT FALSE");
-        jdbc.update("UPDATE knowledge_base SET shared=TRUE WHERE owner_id IN (SELECT id FROM sys_user WHERE UPPER(role)='ADMIN') AND shared=FALSE");
+        addColumn("knowledge_content", "version", "INT NOT NULL DEFAULT 1");
     }
     private void addColumn(String table, String column, String definition) throws Exception {
         try (var connection = dataSource.getConnection(); var columns = connection.getMetaData().getColumns(connection.getCatalog(), null, table, column)) {

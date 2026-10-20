@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { enterWorkspace } from '@/utils/enterWorkspace'
 
 const routes = [
   { path: '/login', name: 'login', component: () => import('@/views/Login.vue'), meta: { public: true } },
@@ -40,5 +41,13 @@ router.beforeEach(async to => {
   if ((to.name === 'login' || to.name === 'register') && store.token) return { name: 'dashboard' }
   return true
 })
+let finishPageTurn: ((failure?: unknown) => void) | undefined
+router.beforeResolve((to, from) => {
+  if (!to.meta.requiresAuth || !from.meta.requiresAuth || to.path === from.path || document.documentElement.classList.contains('entering-workspace')) return
+  const navigation = new Promise<void>((resolve, reject) => { finishPageTurn = failure => failure ? reject(failure) : resolve() })
+  void enterWorkspace(() => navigation, true).catch(() => { /* Router reports navigation errors; the book overlay always cleans up. */ })
+})
+router.afterEach((_to, _from, failure) => { finishPageTurn?.(failure); finishPageTurn = undefined })
+router.onError(error => { finishPageTurn?.(error); finishPageTurn = undefined })
 export default router
 

@@ -14,6 +14,7 @@ async function request(path, method = 'GET', body) {
   return json.data
 }
 const state = await request('/system/status')
+const models = await request('/system/chat-models')
 console.log('Runtime:', JSON.stringify(state))
 const knowledge = await request('/knowledge-bases', 'POST', { name: `API verification ${Date.now()}`, description: 'Disposable public technical fixture' })
 let document
@@ -61,7 +62,8 @@ try {
   const answer = await chat('Spring Boot 自动配置根据哪些条件生效？')
   assert.ok(answer.text.includes('event:citation'))
   const history = await request(`/chat/sessions/${answer.sessionId}/messages`)
-  assert.equal(history.length, 2); assert.ok(history[1].citations.length); assert.equal(history[1].mode, state.llmMode)
+  assert.equal(history.length, 2); assert.ok(history[1].citations.length); assert.equal(history[1].mode, models.defaultProvider === 'local' ? 'LOCAL_MODEL' : state.llmMode)
+  assert.equal(history[1].model, models.options.find(option => option.id === models.defaultProvider).model || null)
   console.log('Answer:', JSON.stringify({ firstTokenMs: answer.firstToken, totalMs: answer.total, citations: history[1].citations.length, mode: history[1].mode }))
   const followup = await chat('它和 Spring Framework 有什么区别？', answer.sessionId)
   assert.equal(followup.sessionId, answer.sessionId)

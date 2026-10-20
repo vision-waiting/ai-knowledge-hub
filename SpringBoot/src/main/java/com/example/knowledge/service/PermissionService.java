@@ -21,8 +21,7 @@ public class PermissionService {
     public QueryWrapper<KnowledgeBase> visibleKnowledgeBases(JwtPrincipal user) {
         QueryWrapper<KnowledgeBase> query = new QueryWrapper<KnowledgeBase>().eq("status", 1);
         if (!"ADMIN".equalsIgnoreCase(user.role())) {
-            query.and(scope -> scope.eq("owner_id", user.userId()).or().eq("shared", true).or()
-                    .inSql("owner_id", "SELECT id FROM sys_user WHERE UPPER(role) = 'ADMIN'")
+            query.and(scope -> scope.eq("owner_id", user.userId()).or().eq("shared", true)
                     .or().inSql("id", "SELECT knowledge_base_id FROM knowledge_member WHERE user_id = " + user.userId()));
         }
         return query;
@@ -35,8 +34,7 @@ public class PermissionService {
         }
         boolean admin = "ADMIN".equalsIgnoreCase(user.role());
         boolean owner = user.userId().equals(base.getOwnerId());
-        var creator = !admin && !owner && !write ? users.selectById(base.getOwnerId()) : null;
-        boolean shared = Boolean.TRUE.equals(base.getShared()) || creator != null && "ADMIN".equalsIgnoreCase(creator.getRole());
+        boolean shared = Boolean.TRUE.equals(base.getShared());
         String memberRole = admin || owner ? null : memberRole(id, user.userId());
         boolean memberAccess = write ? "EDITOR".equals(memberRole) || "MANAGER".equals(memberRole) : memberRole != null;
         if (!admin && !owner && !memberAccess && (write || !shared)) {

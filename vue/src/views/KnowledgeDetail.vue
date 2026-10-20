@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ArrowLeft, ChatDotRound, FolderOpened } from '@element-plus/icons-vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DocumentStatus from '@/components/DocumentStatus.vue'
+import KnowledgeSharing from '@/components/KnowledgeSharing.vue'
 import FollowKnowledgeBase from '@/components/FollowKnowledgeBase.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getKnowledgeBase } from '@/api/knowledge'
@@ -35,6 +36,7 @@ onBeforeUnmount(() => { request++ })
     <div v-if="error" role="alert"><el-alert :title="error" type="error" :closable="false" show-icon /><el-button @click="load">重试加载</el-button></div>
     <el-skeleton v-else-if="loading" :rows="6" />
     <template v-else-if="item">
+      <KnowledgeSharing :key="item.id" :item="item" />
       <div class="metrics-row knowledge-metrics"><router-link :to="`/knowledge/${item.id}/documents`"><span>全部文档</span><strong>{{ docs.length }}</strong></router-link><router-link :to="`/knowledge/${item.id}/documents?status=SUCCESS`"><span>可检索文档</span><strong>{{ ready }}</strong></router-link><router-link :to="`/knowledge/${item.id}/documents?status=PROCESSING`"><span>处理中</span><strong>{{ docs.length - ready - failed }}</strong></router-link><router-link :to="`/knowledge/${item.id}/documents?status=FAILED`"><span>处理失败 →</span><strong :class="{ 'failed-count': failed > 0 }">{{ failed }}</strong></router-link></div>
       <div v-if="!ready" class="scope-notice empty-library-notice"><strong>暂无可检索资料</strong><p>{{ canWrite ? '上传资料或等待文档处理完成后，即可基于内容提问。' : '请等待维护者补充资料或文档处理完成。' }}</p><router-link v-if="canWrite" class="text-link" :to="`/knowledge/${item.id}/documents`">上传资料 / 查看处理状态 →</router-link></div>
       <div class="knowledge-tool-links"><router-link :to="`/search?knowledgeBaseId=${item.id}`">搜索库内资料 →</router-link><template v-if="item.canManage"><router-link :to="`/knowledge/${item.id}/insights`">知识缺口分析 →</router-link><router-link :to="`/knowledge/${item.id}/retrieval`">检索实验室 →</router-link></template><router-link :to="`/knowledge/${item.id}/analysis`">文档总结与对比 →</router-link><router-link :to="`/knowledge/${item.id}/study`">生成卡片与测验 →</router-link><router-link :to="`/workspace?knowledgeBaseId=${item.id}`">知识内容与维护 →</router-link></div>

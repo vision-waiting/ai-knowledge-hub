@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 public class ChatMessage {
     @TableId(type = IdType.AUTO) private Long id; private Long sessionId; private String role; private String content; private Integer tokenCount; private LocalDateTime createdAt;
     private String mode;
+    private String model;
+    public String getModel(){return model;} public void setModel(String value){model=value;}
     private String citationsJson; private String feedback; private String feedbackReason; private String retrievalJson;
     public Long getId(){return id;} public void setId(Long v){id=v;} public Long getSessionId(){return sessionId;} public void setSessionId(Long v){sessionId=v;}
     public String getRole(){return role;} public void setRole(String v){role=v;} public String getContent(){return content;} public void setContent(String v){content=v;}

@@ -8,6 +8,7 @@ export const useChatStore = defineStore('chat', () => {
   const messages = ref<ChatMessage[]>([])
   const loading = ref(false)
   const historyLoading = ref(false)
+  const status = ref('')
   const sessionId = ref<number | undefined>()
   const knowledgeBaseId = ref<number>()
   let controller: AbortController | null = null
@@ -22,6 +23,7 @@ export const useChatStore = defineStore('chat', () => {
       if (last?.role === 'ASSISTANT') last.error = '已停止生成'
     }
     loading.value = false
+    status.value = ''
     historyLoading.value = false
   }
   function clear() { stop(); messages.value = []; sessionId.value = undefined }
@@ -40,22 +42,24 @@ export const useChatStore = defineStore('chat', () => {
       sessionId.value = session.id
     } finally { if (current === generation) historyLoading.value = false }
   }
-  async function send(id: number, question: string) {
+  async function send(id: number, question: string, provider?: string) {
     selectKnowledgeBase(id)
     if (!question.trim() || loading.value || historyLoading.value) return
     messages.value.push({ role: 'USER', content: question })
     const assistant = reactive<ChatMessage>({ role: 'ASSISTANT', content: '', citations: [] })
     messages.value.push(assistant)
     loading.value = true
+    status.value = provider === 'cloud' ? '正在检索资料并连接云端 API' : '正在检索资料并准备回答'
     const active = new AbortController()
     controller = active
     const current = ++generation
     let completed = false
     const parser = createSseParser(({ event, data }) => {
       if (current !== generation) return
-      if (event === 'message') assistant.content += data
+      if (event === 'status') status.value = data
+      if (event === 'message') { assistant.content += data; status.value = '' }
       if (event === 'citation') assistant.citations?.push(JSON.parse(data) as Citation)
-      if (event === 'meta') { const meta = JSON.parse(data); assistant.mode = meta.mode; assistant.id = meta.messageId || assistant.id; assistant.retrieval = meta.retrieval ?? assistant.retrieval; sessionId.value = meta.sessionId || sessionId.value }
+      if (event === 'meta') { const meta = JSON.parse(data); assistant.mode = meta.mode; assistant.model = meta.model; assistant.id = meta.messageId || assistant.id; assistant.retrieval = meta.retrieval ?? assistant.retrieval; sessionId.value = meta.sessionId || sessionId.value }
       if (event === 'session') sessionId.value = JSON.parse(data).sessionId
       if (event === 'done') { const payload = JSON.parse(data); sessionId.value = payload.data?.sessionId || payload.data || sessionId.value; completed = true }
       if (event === 'error') {
@@ -66,7 +70,7 @@ export const useChatStore = defineStore('chat', () => {
       }
     })
     try {
-      const response = await fetch(streamUrl(id, question, sessionId.value), {
+      const response = await fetch(streamUrl(id, question, sessionId.value, provider), {
         headers: { Authorization: `Bearer ${localStorage.getItem('ai_kh_token') || ''}`, Accept: 'text/event-stream' }, signal: active.signal,
       })
       if (current !== generation) { await response.body?.cancel(); return }
@@ -90,9 +94,9 @@ export const useChatStore = defineStore('chat', () => {
     } catch (error) {
       if (current === generation && (error as Error).name !== 'AbortError') assistant.error = (error as Error).message || '连接问答服务失败'
     } finally {
-      if (current === generation) { loading.value = false; controller = null }
+      if (current === generation) { loading.value = false; status.value = ''; controller = null }
     }
   }
   const lastAnswer = computed(() => messages.value[messages.value.length - 1])
-  return { messages, loading, historyLoading, sessionId, knowledgeBaseId, lastAnswer, send, stop, clear, selectKnowledgeBase, openSession }
+  return { messages, loading, historyLoading, status, sessionId, knowledgeBaseId, lastAnswer, send, stop, clear, selectKnowledgeBase, openSession }
 })

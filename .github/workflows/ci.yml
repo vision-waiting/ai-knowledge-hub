@@ -1,0 +1,44 @@
+name: Verify
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: SpringBoot/pom.xml
+      - run: mvn --batch-mode --no-transfer-progress verify
+        working-directory: SpringBoot
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: vue/package-lock.json
+      - run: npm ci
+        working-directory: vue
+      - run: npm run test -- --run
+        working-directory: vue
+      - run: npm run build
+        working-directory: vue
+      - run: npm audit --audit-level=high
+        working-directory: vue
+  windows-launcher:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/test-startup.ps1
+        shell: powershell
+      - run: ./scripts/test-ollama-startup.ps1
+        shell: powershell

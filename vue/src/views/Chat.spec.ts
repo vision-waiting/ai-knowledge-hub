@@ -8,6 +8,10 @@ const state = vi.hoisted(() => ({ chat: null as any }))
 vi.mock('@/stores/chat', () => ({ useChatStore: () => state.chat }))
 vi.mock('@/api/knowledge', () => ({ getKnowledgeBase: vi.fn().mockResolvedValue({ id: 1, name: '接口资料' }) }))
 vi.mock('@/api/chat', () => ({ listSessions: vi.fn().mockResolvedValue([]), deleteSession: vi.fn() }))
+vi.mock('@/api/system', () => ({ chatModels: vi.fn().mockResolvedValue({ defaultProvider: 'local', options: [
+  { id: 'local', label: '本地模型', model: 'qwen-local', configured: true },
+  { id: 'cloud', label: '云端 API', model: 'cloud-model', configured: true },
+] }) }))
 vi.mock('@/api/http', () => ({ http: { get: vi.fn().mockResolvedValue({ items: [{ title: '如何申请接口密钥？' }] }) } }))
 it('keeps the reader position and offers a jump to the latest message', async () => {
   state.chat = reactive({ messages: [{ role: 'ASSISTANT', content: '开头' }], selectKnowledgeBase: vi.fn(), stop: vi.fn(), clear: vi.fn() })
@@ -40,5 +44,10 @@ it('suggests questions from the knowledge base FAQ when available', async () => 
   const wrapper = mount(Chat, { global: { plugins: [router, ElementPlus], stubs: { AppLayout: { template: '<main><slot /></main>' }, ChatMessage: true } } })
   await flushPromises()
   expect(wrapper.get('.question-examples').text()).toContain('如何申请接口密钥？')
+  expect(wrapper.get<HTMLSelectElement>('#chat-model-provider').element.value).toBe('local')
+  expect(wrapper.text()).toContain('qwen-local')
+  await wrapper.get('#chat-model-provider').setValue('cloud')
+  expect(wrapper.get('#chat-model-description').text()).toContain('相关资料片段发送至云端')
+  expect(wrapper.text()).toContain('cloud-model')
   wrapper.unmount()
 })

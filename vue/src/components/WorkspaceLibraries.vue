@@ -17,7 +17,7 @@ onMounted(load); onBeforeUnmount(() => { disposed = true })
 </script>
 <template>
   <section class="workspace-libraries">
-    <div class="section-heading"><div><span class="section-kicker">我的知识库</span><h2>继续探索知识</h2></div><router-link class="text-link" to="/knowledge">全部知识库 <el-icon><Right /></el-icon></router-link></div>
+    <div class="section-heading"><div><h2>继续探索知识<span class="section-subtitle">我的知识库</span></h2></div><router-link class="text-link" to="/knowledge">全部知识库 <el-icon><Right /></el-icon></router-link></div>
     <p v-if="loading" role="status" class="muted">正在加载知识库…</p>
     <p v-else-if="error" role="alert" class="inline-error">知识库加载失败。<button class="text-button" @click="load">重试</button></p>
     <div v-else-if="items.length" class="library-grid"><article v-for="(item, index) in items" :key="item.id" :class="['library-tile', `library-tone-${index}`]"><div class="library-tile-top"><span class="library-icon"><el-icon><Collection /></el-icon></span><span class="library-count">{{ item.documentCount }} 份文档</span></div><router-link :to="`/knowledge/${item.id}`"><h3>{{ item.name }}</h3></router-link><p>{{ item.description || '集中整理资料，让团队知识随时可用。' }}</p><footer><router-link :to="`/knowledge/${item.id}/documents`"><el-icon><Document /></el-icon>查看文档</router-link><router-link class="library-chat" :to="`/knowledge/${item.id}/chat`"><el-icon><ChatDotRound /></el-icon>开始问答</router-link></footer></article></div>

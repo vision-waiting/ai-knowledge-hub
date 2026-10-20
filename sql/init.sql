@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS chat_session (
 );
 CREATE TABLE IF NOT EXISTS chat_message (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, session_id BIGINT NOT NULL, role VARCHAR(20) NOT NULL, content LONGTEXT NOT NULL,
-    token_count INT, mode VARCHAR(32), citations_json LONGTEXT, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_message_session(session_id)
+    token_count INT, mode VARCHAR(32), model VARCHAR(255), citations_json LONGTEXT, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_message_session(session_id)
 );
 CREATE TABLE IF NOT EXISTS operation_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT, operation VARCHAR(100), method VARCHAR(20), request_uri VARCHAR(500), ip VARCHAR(100),
@@ -48,5 +48,44 @@ CREATE TABLE IF NOT EXISTS ai_usage_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT, mode VARCHAR(30) NOT NULL, model VARCHAR(100), duration_ms BIGINT,
     prompt_tokens INT, completion_tokens INT, success TINYINT NOT NULL, error_message VARCHAR(1000), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_ai_log_created(created_at)
+);
+
+
+-- GitHub-style knowledge collaboration (additive, no existing data reset).
+CREATE TABLE IF NOT EXISTS knowledge_star (
+    user_id BIGINT NOT NULL,
+    knowledge_base_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, knowledge_base_id)
+);
+CREATE TABLE IF NOT EXISTS content_suggestion (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    knowledge_base_id BIGINT NOT NULL,
+    content_id BIGINT NOT NULL,
+    base_version INT NOT NULL,
+    author_id BIGINT NOT NULL,
+    original_title VARCHAR(200) NOT NULL,
+    original_body LONGTEXT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    body LONGTEXT NOT NULL,
+    reason VARCHAR(1000) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+    reviewer_id BIGINT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP,
+    INDEX idx_suggestion_scope (knowledge_base_id, status, id)
+);
+CREATE TABLE IF NOT EXISTS content_revision (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    knowledge_base_id BIGINT NOT NULL,
+    content_id BIGINT NOT NULL,
+    version INT NOT NULL,
+    snapshot_json LONGTEXT NOT NULL,
+    actor_id BIGINT,
+    contributor_id BIGINT,
+    action VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (content_id, version),
+    INDEX idx_revision_scope (knowledge_base_id, content_id)
 );
 

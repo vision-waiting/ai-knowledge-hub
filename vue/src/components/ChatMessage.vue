@@ -41,13 +41,13 @@ function openInlineCitation(event: MouseEvent) {
 function documentName(documentId: number) {
   return props.message.citations?.find(item => item.documentId === documentId)?.documentName || `文档 #${documentId}`
 }
-const modeLabel = (mode: string) => ({ LOCAL_DEMO: '原文检索', OPENAI_COMPATIBLE: 'AI 回答', INSUFFICIENT_CONTEXT: '资料不足', SMALL_TALK: '日常对话' }[mode] || mode)
+const modeLabel = (mode: string) => ({ LOCAL_DEMO: '原文检索', LOCAL_MODEL: '本地模型', CLOUD_API: '云端 API', OPENAI_COMPATIBLE: 'AI 回答', INSUFFICIENT_CONTEXT: '资料不足', SMALL_TALK: '日常对话' }[mode] || mode)
 </script>
 <template>
   <div :class="['message-row', props.message.role.toLowerCase()]">
     <div v-if="props.message.role === 'ASSISTANT'" class="avatar ai-avatar">AI</div>
     <div class="message-bubble">
-      <div v-if="props.message.role === 'ASSISTANT'" class="message-label">AI 助手 <small v-if="props.message.mode">· {{ modeLabel(props.message.mode) }}</small></div>
+      <div v-if="props.message.role === 'ASSISTANT'" class="message-label">AI 助手 <small v-if="props.message.mode">· {{ modeLabel(props.message.mode) }}<template v-if="props.message.model"> · {{ props.message.model }}</template></small></div>
       <span v-if="props.message.role === 'ASSISTANT' && !props.message.content && !props.message.error" class="typing-dots" aria-label="正在生成回答"><i /><i /><i /></span>
       <div class="markdown-body" v-html="renderMarkdown(props.message.content, props.message.citations?.length)" @click="openInlineCitation"></div>
       <p v-if="props.message.error" class="message-error" role="alert">{{ props.message.error }}</p>

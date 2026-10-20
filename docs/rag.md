@@ -8,7 +8,9 @@ flowchart TD
         A[上传与权限校验] --> B[WAITING → PARSING]
         B --> C[按文件类型解析并保留页码]
         C --> D{有可提取文本?}
-        D -->|否| E[可选 OCR；未配置或识别失败则 FAILED]
+        D -->|否| E{可选 OCR 是否提取到文本?}
+        E -->|是| F
+        E -->|否| E1[无可用文本：FAILED]
         D -->|是| F[CHUNKING：句段边界优先切片与重叠]
         F --> G[保存原文、文档 ID、页码和切片序号]
         G --> H[EMBEDDING：批量向量化]
@@ -33,7 +35,7 @@ flowchart TD
     end
 ```
 
-## 本次改动
+## 实现策略
 
 ### 1. 保留结构的切片
 

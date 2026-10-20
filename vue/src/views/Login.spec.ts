@@ -2,8 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import Login from './Login.vue'
-import { register } from '@/api/auth'
-vi.mock('@/api/auth', () => ({ register: vi.fn() }))
+import { login, register } from '@/api/auth'
+vi.mock('@/api/auth', () => ({ register: vi.fn(), login: vi.fn() }))
 
 async function registrationForm() {
   localStorage.clear()
@@ -54,4 +54,34 @@ it('opens a real sign-in form without publishing or prefilling credentials', () 
   expect(wrapper.find<HTMLInputElement>('input[autocomplete="username"]').element.value).toBe('')
   expect(wrapper.find<HTMLInputElement>('input[type="password"]').element.value).toBe('')
   expect(wrapper.text()).not.toMatch(/示例|演示|123456/)
+})
+
+it('prevents duplicate sign-in requests and preserves the requested destination', async () => {
+  const { wrapper, router } = await registrationForm()
+  await router.push('/login?redirect=/dashboard?from=login')
+  await wrapper.get('input[name="password"]').setValue('password123')
+  let resolve!: (value: Awaited<ReturnType<typeof login>>) => void
+  vi.mocked(login).mockReset().mockImplementationOnce(() => new Promise(done => { resolve = done }))
+  await wrapper.get('form').trigger('submit')
+  await wrapper.get('form').trigger('submit')
+  expect(login).toHaveBeenCalledOnce()
+  expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+  expect(wrapper.get('[role="status"]').text()).toContain('正在验证')
+  resolve({ token: 'login-token', user: { id: 9, username: 'new_user', nickname: '', role: 'USER', status: 1 } })
+  await flushPromises()
+  expect(router.currentRoute.value.fullPath).toBe('/dashboard?from=login')
+  localStorage.clear()
+})
+
+it('keeps failed sign-in on the form and allows retrying', async () => {
+  const { wrapper, router } = await registrationForm()
+  await router.push('/login')
+  await wrapper.get('input[name="password"]').setValue('password123')
+  vi.mocked(login).mockRejectedValueOnce(new Error('用户名或密码错误'))
+  await wrapper.get('form').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.path).toBe('/login')
+  expect(wrapper.get('[role="alert"]').text()).toContain('用户名或密码错误')
+  expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+  expect(document.documentElement.classList.contains('entering-workspace')).toBe(false)
 })

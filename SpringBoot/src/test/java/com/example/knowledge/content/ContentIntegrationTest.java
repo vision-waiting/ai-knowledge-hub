@@ -33,7 +33,7 @@ class ContentIntegrationTest {
   jdbc.update("INSERT INTO document(knowledge_base_id,file_name,file_path,status) VALUES (?,'foreign','unused','SUCCESS')",kb+100000);
   Long doc=jdbc.queryForObject("SELECT id FROM document WHERE knowledge_base_id=?",Long.class,kb+100000);
   mvc.perform(post(url).header("Authorization",auth).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("kind","TERM","title","Term","body","Definition","sourceDocumentId",doc)))).andExpect(status().isBadRequest());
-  mvc.perform(put(url+"/"+id).header("Authorization",auth).contentType(MediaType.APPLICATION_JSON).content("{\"kind\":\"TERM\",\"title\":\"Cache\",\"body\":\"Definition\",\"aliases\":\"缓存, cache\",\"sortOrder\":1}")).andExpect(status().isOk()).andExpect(jsonPath("$.data.aliases").value("缓存, cache"));
+  mvc.perform(put(url+"/"+id).header("Authorization",auth).contentType(MediaType.APPLICATION_JSON).content("{\"kind\":\"TERM\",\"title\":\"Cache\",\"body\":\"Definition\",\"aliases\":\"缓存, cache\",\"sortOrder\":1,\"baseVersion\":1}")).andExpect(status().isOk()).andExpect(jsonPath("$.data.aliases").value("缓存, cache"));
   mvc.perform(get(url).header("Authorization",auth).param("kind","FAQ")).andExpect(status().isOk()).andExpect(jsonPath("$.data.items").isEmpty());
   mvc.perform(delete(url+"/"+id).header("Authorization",auth)).andExpect(status().isOk());
   jdbc.update("UPDATE knowledge_base SET shared=false WHERE id=?",kb);

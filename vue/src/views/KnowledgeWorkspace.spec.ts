@@ -3,6 +3,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import Workspace from './KnowledgeWorkspace.vue'
 import { http } from '@/api/http'
 import { listKnowledgeBases } from '@/api/knowledge'
+vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ user: { id: 1 } }) }))
 vi.mock('@/api/http',()=>({http:{get:vi.fn(),post:vi.fn(),put:vi.fn(),delete:vi.fn()}}))
 vi.mock('@/api/knowledge',()=>({listKnowledgeBases:vi.fn()}))
 async function setup(){
@@ -24,4 +25,16 @@ it('resolves a reported issue without exposing private sessions',async()=>{
 it('does not offer management actions to a reader',async()=>{
  vi.mocked(listKnowledgeBases).mockResolvedValue([{id:2,name:'Team',ownerId:1,documentCount:0,canManage:false}])
  const w=await setup();await flushPromises();expect(w.find('[data-test="tab-feedback"]').exists()).toBe(false);expect(w.find('[data-test="new-entry"]').exists()).toBe(false);w.unmount()
+})
+it('sends the displayed version and preserves the draft when another edit wins',async()=>{
+ vi.mocked(http.get).mockResolvedValue({items:[{id:8,kind:'FAQ',title:'原题',body:'原文',version:2,sortOrder:0}],hasMore:false} as never)
+ vi.mocked(http.put).mockRejectedValueOnce(new Error('原内容已有新版本'))
+ const w=await setup();await flushPromises()
+ await w.findAll('button').find(b=>b.text()==='编辑')!.trigger('click')
+ await w.get('textarea[aria-label="正文"]').setValue('保留的草稿')
+ await w.get('form').trigger('submit');await flushPromises()
+ expect(http.put).toHaveBeenCalledWith('/knowledge-bases/2/content/8',expect.objectContaining({baseVersion:2,body:'保留的草稿'}))
+ expect(w.get('[role="alert"]').text()).toContain('原内容已有新版本')
+ expect((w.get('textarea[aria-label="正文"]').element as HTMLTextAreaElement).value).toBe('保留的草稿')
+ w.unmount()
 })

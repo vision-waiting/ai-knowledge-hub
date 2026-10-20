@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useChatStore } from './chat'
 
 vi.mock('@/api/chat', () => ({
-  streamUrl: (kb: number, question: string, session?: number) => `${kb}/${question}/${session || ''}`,
+  streamUrl: (kb: number, question: string, session?: number, provider?: string) => `${kb}/${question}/${session || ''}${provider ? '?provider=' + provider : ''}`,
   listMessages: vi.fn().mockResolvedValue([{ role: 'ASSISTANT', content: 'saved', mode: 'LOCAL_DEMO', citations: [{ chunkId: 5 }] }]),
 }))
 
@@ -14,6 +14,14 @@ function response(text: string) {
 }
 
 describe('chat isolation and streaming', () => {
+  it('sends the selected provider and retains actual model metadata', async () => {
+    const chat = useChatStore()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response('event: status\ndata: 正在排队\n\nevent: message\ndata: 答案\n\nevent: meta\ndata: {"mode":"CLOUD_API","model":"cloud-model"}\n\nevent: done\ndata: {"data":9}\n\n')))
+    await chat.send(1, 'question', 'cloud')
+    expect(fetch).toHaveBeenCalledWith('1/question/?provider=cloud', expect.anything())
+    expect(chat.messages[1]).toMatchObject({ model: 'cloud-model', mode: 'CLOUD_API' })
+    expect(chat.status).toBe('')
+  })
   it('retains saved answer id from metadata for immediate feedback', async () => {
     const chat = useChatStore()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response('event: meta\ndata: {"sessionId":9,"messageId":42,"mode":"LOCAL_DEMO"}\n\nevent: done\ndata: {"data":9}\n\n')))

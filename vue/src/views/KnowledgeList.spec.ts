@@ -24,23 +24,23 @@ it('separates personal and shared libraries and displays publishers', async () =
   expect(wrapper.text()).toContain('发布者：publisher')
   wrapper.unmount()
 })
-it('lets users choose sharing when creating and forces sharing for admins', async () => {
+it('lets users and admins create private libraries by default', async () => {
   for (const role of ['USER', 'ADMIN'] as const) {
     useAuthStore().user!.role = role
     const wrapper = render(); await flushPromises()
     await wrapper.get('.page-heading button').trigger('click'); await flushPromises()
     const toggle = wrapper.findComponent({ name: 'ElSwitch' })
-    expect(toggle.props('modelValue')).toBe(role === 'ADMIN')
-    expect(toggle.props('disabled')).toBe(role === 'ADMIN')
+    expect(toggle.props('modelValue')).toBe(false)
+    expect(toggle.props('disabled')).toBe(false)
     wrapper.unmount()
   }
 })
-it('locks sharing when an admin edits another administrators library', async () => {
+it('allows administrators to withdraw a shared library', async () => {
   useAuthStore().user!.role = 'ADMIN'
   const wrapper = render(); await flushPromises()
   const card = wrapper.findComponent(KnowledgeCard)
   card.vm.$emit('edit', { id: 9, name: '管理员发布', ownerId: 9, shared: true, sharingLocked: true, documentCount: 0 })
   await flushPromises()
-  expect(wrapper.findComponent({ name: 'ElSwitch' }).props('disabled')).toBe(true)
+  expect(wrapper.findComponent({ name: 'ElSwitch' }).props('disabled')).toBe(false)
   wrapper.unmount()
 })

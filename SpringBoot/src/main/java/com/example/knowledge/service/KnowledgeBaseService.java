@@ -42,7 +42,7 @@ public class KnowledgeBaseService {
         base.setName(request.name().trim());
         base.setDescription(request.description());
         base.setOwnerId(user.userId());
-        base.setShared("ADMIN".equalsIgnoreCase(user.role()) || Boolean.TRUE.equals(request.shared()));
+        base.setShared(Boolean.TRUE.equals(request.shared()));
         base.setStatus(1);
         base.setDocumentCount(0);
         mapper.insert(base);
@@ -65,9 +65,7 @@ public class KnowledgeBaseService {
         KnowledgeBase base = permissions.requireKnowledgeBaseManagement(id, user);
         base.setName(request.name().trim());
         base.setDescription(request.description());
-        var creator = users.selectById(base.getOwnerId());
-        if (creator != null && "ADMIN".equalsIgnoreCase(creator.getRole())) base.setShared(true);
-        else if (request.shared() != null) base.setShared(request.shared());
+        if (request.shared() != null) base.setShared(request.shared());
         mapper.updateById(base);
         return toVO(base, user);
     }
@@ -82,7 +80,7 @@ public class KnowledgeBaseService {
                 .stream().map(ChatSession::getId).toList();
         if (!sessions.isEmpty()) messageMapper.delete(new QueryWrapper<ChatMessage>().in("session_id", sessions));
         sessionMapper.delete(new QueryWrapper<ChatSession>().eq("knowledge_base_id", id));
-        for (String table : List.of("knowledge_member", "knowledge_content", "web_source", "review_card"))
+        for (String table : List.of("knowledge_member", "knowledge_content", "web_source", "review_card", "knowledge_star", "content_suggestion", "content_revision"))
             jdbc.update("DELETE FROM " + table + " WHERE knowledge_base_id=?", id);
         mapper.deleteById(id);
     }
@@ -92,7 +90,8 @@ public class KnowledgeBaseService {
         return new KnowledgeBaseVO(base.getId(), base.getName(), base.getDescription(), base.getOwnerId(),
                 base.getDocumentCount() == null ? 0 : base.getDocumentCount(), base.getCreatedAt(), base.getUpdatedAt(),
                 creator == null ? null : creator.getUsername(), creator == null ? null : creator.getNickname(),
-                Boolean.TRUE.equals(base.getShared()) || creator != null && "ADMIN".equalsIgnoreCase(creator.getRole()),
-                creator != null && "ADMIN".equalsIgnoreCase(creator.getRole()), permissions.canWrite(base, user), permissions.canManage(base, user));
+                Boolean.TRUE.equals(base.getShared()), false, permissions.canWrite(base, user), permissions.canManage(base, user),
+                Long.valueOf(1).equals(jdbc.queryForObject("SELECT COUNT(*) FROM knowledge_star WHERE knowledge_base_id=? AND user_id=?", Long.class, base.getId(), user.userId())),
+                jdbc.queryForObject("SELECT COUNT(*) FROM knowledge_star WHERE knowledge_base_id=?", Long.class, base.getId()));
     }
 }
