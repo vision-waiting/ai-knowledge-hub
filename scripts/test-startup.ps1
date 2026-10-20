@@ -131,3 +131,6 @@ try {
     if (Test-Path -LiteralPath $resolvedFixture) { Remove-Item -LiteralPath $resolvedFixture -Recurse -Force }
     Remove-Variable startupTestScenario, startupTestStarted, startupTestKilled, startupTestBuilds, startupTestComposeProject -Scope Global -ErrorAction SilentlyContinue
 }
+# Expected-failure mocks set LASTEXITCODE=1. Report success only after all
+# assertions and cleanup finish, including when called by GitHub's shell wrapper.
+$global:LASTEXITCODE = 0
