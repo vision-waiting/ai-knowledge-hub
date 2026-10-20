@@ -11,16 +11,16 @@
 
 ## 界面预览
 
-以下为项目既有验收/设计预览截图，使用示例资料与测试账号；数据统计仅用于界面展示，不代表性能指标。实际界面以当前代码为准。
+以下截图于 2026-10-20 从当前版本实际运行界面截取，展示书本式布局与书签导航。使用独立示例账号和三个空的示例知识库，不包含私人资料；窗口大小会影响布局，静态截图不展示翻书动效。
 
 ![知识工作台](docs/images/workspace.png)
 
 <details>
-<summary>查看问答引用与协作审核</summary>
+<summary>查看书本入口与知识库</summary>
 
-![问答与资料引用](docs/images/chat.png)
+![书本入口](docs/images/login.png)
 
-![修改建议审核](docs/images/collaboration.png)
+![知识库](docs/images/knowledge.png)
 
 </details>
 
