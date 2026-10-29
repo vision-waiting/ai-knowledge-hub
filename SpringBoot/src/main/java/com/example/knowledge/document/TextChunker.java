@@ -27,10 +27,25 @@ public class TextChunker {
         List<int[]> tokens = new ArrayList<>();
         Matcher matcher = TOKEN.matcher(normalized);
         while (matcher.find()) tokens.add(new int[]{matcher.start(), matcher.end()});
+        List<int[]> blocks = new ArrayList<>();
+        Matcher block = Pattern.compile("(?ms)^```[^\\n]*\\n.*?^```[ \\t]*(?=\\n|$)|^~~~[^\\n]*\\n.*?^~~~[ \\t]*(?=\\n|$)|(?:^\\|[^\\n]*\\|[ \\t]*\\n?)+").matcher(normalized);
+        while (block.find()) {
+            int first = 0, last = 0;
+            while (first < tokens.size() && tokens.get(first)[0] < block.start()) first++;
+            last = first;
+            while (last < tokens.size() && tokens.get(last)[0] < block.end()) last++;
+            if (last - first <= chunkSize) blocks.add(new int[]{first, last});
+        }
         List<TextChunk> result = new ArrayList<>();
         for (int start = 0; start < tokens.size();) {
             int end = Math.min(start + chunkSize, tokens.size());
             if (end < tokens.size()) end = boundary(normalized, tokens, start, end);
+            for (int[] range : blocks) {
+                if (end > range[0] && end < range[1]) {
+                    end = range[0] > start ? range[0] : range[1];
+                    break;
+                }
+            }
             String content = normalized.substring(tokens.get(start)[0], tokens.get(end - 1)[1]).trim();
             if (!content.isBlank()) result.add(new TextChunk(content, pageNumber, end - start));
             if (end == tokens.size()) break;

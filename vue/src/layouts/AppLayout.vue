@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ChatDotRound, Collection, DataAnalysis, Document, Fold, House, Setting, SwitchButton, Reading, Notebook, ArrowDown, Close } from '@element-plus/icons-vue'
 import NotificationBell from '@/components/NotificationBell.vue'
 import KnowledgeOrbit from '@/components/KnowledgeOrbit.vue'
+import ReadingControls from '@/components/ReadingControls.vue'
+import { readingPreferences } from '@/utils/readingPreferences'
 import { useAuthStore } from '@/stores/auth'
 import { systemStatus } from '@/api/system'
 import type { SystemStatus } from '@/types'
@@ -60,7 +62,7 @@ function navigationKey(event: KeyboardEvent) {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
 }
-function resize() { if (window.innerWidth >= 768 && mobileOpen.value) void closeNavigation() }
+function resize() { if (!readingPreferences.focusMode && window.innerWidth >= 768 && mobileOpen.value) void closeNavigation() }
 async function logout() { try { await auth.logout() } finally { await router.push('/login') } }
 watch(() => route.path, () => {
   for (const group of groups) if (group.items.some(item => active(item.path))) expanded.value[group.id] = true
@@ -74,7 +76,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', resize))
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'is-reading-focused': readingPreferences.focusMode }">
     <div v-if="mobileOpen" class="nav-backdrop" @click="closeNavigation" />
     <aside id="primary-navigation" ref="sidebar" :class="['sidebar', { 'mobile-open': mobileOpen }]" :role="mobileOpen ? 'dialog' : undefined" :aria-modal="mobileOpen ? true : undefined" aria-label="主导航面板" @keydown="navigationKey">
       <div class="brand-row"><router-link class="brand" to="/dashboard"><span>智</span><div>智能知识中心<small>知识管理 · 智能问答</small></div></router-link><button v-if="mobileOpen" class="nav-close" aria-label="关闭导航" @click="closeNavigation"><el-icon><Close /></el-icon></button></div>
@@ -103,6 +105,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', resize))
           <router-link to="/profile" class="topbar-account" aria-label="个人中心"><span class="account-avatar">{{ (auth.user?.nickname || auth.user?.username || 'U').slice(0, 1) }}</span><span class="account-info"><strong>{{ auth.user?.nickname || auth.user?.username }}</strong><small>{{ auth.isAdmin ? '管理员' : '普通用户' }}</small></span></router-link>
           <el-button text :icon="SwitchButton" title="退出登录" aria-label="退出登录" @click="logout" />
         </div>
+        <ReadingControls />
       </header>
         <router-link class="chapter-brand" to="/dashboard"><span>智</span>智能知识中心</router-link>
         <div class="chapter-intro"><h2>{{ title }}</h2><p>留一点空间，给新知。<br />整理资料，让知识随时可用。</p></div>

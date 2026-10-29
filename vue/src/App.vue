@@ -2,9 +2,12 @@
 import { computed, nextTick, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import BookCover from '@/components/BookCover.vue'
+import { readingPreferences, getPageTurnDuration } from '@/utils/readingPreferences'
 const route = useRoute()
 const opened = ref(false), opening = ref(false)
 const covered = computed(() => !opened.value && (route.name === 'login' || route.name === 'register'))
+const focused = computed(() => readingPreferences.focusMode && route.meta.requiresAuth)
+const openingDuration = computed(() => `${getPageTurnDuration() ? getPageTurnDuration() + 100 : 0}ms`)
 async function reveal() {
   opened.value = true
   await nextTick()
@@ -12,7 +15,8 @@ async function reveal() {
 }
 </script>
 <template>
-  <div class="book-world">
+  <div class="book-world" :class="{ 'is-reading-focused': focused }" :style="{ '--book-opening-duration': openingDuration }">
+    <div class="book-landscape-backdrop" aria-hidden="true"></div>
     <div class="book-reading" :class="{ 'under-cover': covered && !opening, 'opening-book': opening && covered }" :inert="covered || undefined" :aria-hidden="covered || undefined"><router-view /></div>
     <BookCover v-if="covered" @opening="opening = true" @opened="reveal" />
   </div>

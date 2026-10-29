@@ -2,7 +2,7 @@
 .book-world { --book-paper: #fffdf3; --book-desk: #dedfd2; --book-ink: #294d36; --book-line: #d9ddc9; --sidebar-width: 0px; }
 body:has(.book-world) { background: #dedfd2; }
 .book-reading.under-cover { visibility: hidden; }
-.book-reading.opening-book { animation: book-approach 1100ms cubic-bezier(.16,1,.3,1) both; }
+.book-reading.opening-book { animation: book-approach var(--book-opening-duration, 1600ms) cubic-bezier(.16,1,.3,1) both; }
 @keyframes book-approach { from { opacity: 0; transform: scale(.9); } 45% { opacity: .5; } to { opacity: 1; transform: none; } }
 .book-cover-scene { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; background: #dedfd2; perspective: 1800px; overflow: hidden; }
 .closed-volume { position: relative; width: min(350px, 70vw); height: min(490px, 64dvh); perspective: 1600px; }
@@ -44,6 +44,19 @@ body:has(.book-world) { background: #dedfd2; }
 .book-world .nav-items a:focus-visible { outline: 2px solid #285541; outline-offset: 2px; }
 .book-world .mobile-menu { display: none; }
 .book-transition-overlay .app-shell { background: transparent; }
+.story-transition-surface { position: absolute; inset: 0; z-index: 5; overflow: hidden; }
+.story-transition .story-transition-caption { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 32px; color: #f5efdd; text-align: center; }
+.story-transition-title { max-width: min(28ch, 100%); margin: 0; font-family: 'STSong','SimSun',serif; font-size: clamp(24px, 4vw, 40px); font-weight: 400; line-height: 1.6; letter-spacing: .12em; overflow-wrap: anywhere; text-wrap: balance; }
+.story-transition-rule { position: relative; width: min(180px, 40vw); height: 1px; background: linear-gradient(90deg, transparent, #c8c491, transparent); }
+.story-transition-rule::after { content: ''; position: absolute; left: calc(50% - 3px); top: -3px; width: 7px; height: 7px; background: #c8c491; transform: rotate(45deg); }
+.story-search-beam { position: absolute; z-index: 6; inset-block: 0; left: -12vw; width: 24vw; background: linear-gradient(90deg, transparent, #eadbb940 42%, #fff8deaa 50%, #eadbb940 58%, transparent); }
+.story-paper-edge { position: absolute; z-index: 6; inset-block: 0; right: -5vw; width: 10vw; background: linear-gradient(90deg, transparent, #b7bfaa66 35%, #fffdf3 48%, #e6e0cbb3 52%, transparent); transform-origin: center; }
+.story-paper-edge[data-direction="-1"] { right: auto; left: -5vw; }
+.story-focus-frame { position: absolute; z-index: 6; width: 72px; height: 52px; border: 1px solid #b8a570; pointer-events: none; }
+.story-compare-seam { position: absolute; z-index: 6; left: 50%; top: 12%; bottom: 12%; width: 1px; background: linear-gradient(transparent, #b8a570, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .story-transition { display: none; }
+}
 .book-transition-overlay .main-area { transform-origin: 20px center; backface-visibility: hidden; will-change: transform; }
 .breeze-leaf { position: absolute; transform-origin: left center; border-radius: 0 9px 12px 0; background: linear-gradient(90deg,#d9dcc8,#fffdf0 9%,#fffdf0 94%,#e1decd); box-shadow: 5px 9px 18px #34452b1c; pointer-events: none; }
 @media (min-width: 1600px) {
@@ -229,7 +242,7 @@ body:has(.book-world), .book-world .app-shell, .book-world .login-page.login-pag
 .book-world .nav-items a { box-shadow: inset 0 1px 1px #ffffef80, 2px 4px 5px #33453130; }
 .book-transition-overlay .book-spread { background: transparent; box-shadow: none; }
 .book-transition-overlay .book-spread::before, .book-transition-overlay .book-spread::after { display: none; }
-.page-curl-shadow { position: absolute; z-index: 20; pointer-events: none; filter: drop-shadow(8px 12px 9px #27392240); }
+.page-curl-shadow { position: absolute; z-index: 20; pointer-events: none; filter: drop-shadow(5px 8px 5px #27392255) drop-shadow(14px 20px 16px #27392226); }
 .page-curl-reverse { position: absolute; background: linear-gradient(148deg,#d3d2ba 15%,#faf7e8 37%,#fffdf3 50%,#e7e4cf 64%,#b8bda2 83%); will-change: clip-path; }
 @media (min-width: 768px) and (max-width: 1100px) {
   .book-world .book-spread::after { left: 37.5%; }

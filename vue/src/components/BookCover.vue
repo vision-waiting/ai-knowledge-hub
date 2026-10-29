@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { getPageTurnDuration } from '@/utils/readingPreferences'
 const emit = defineEmits<{ opened: []; opening: [] }>()
 const scene = ref<HTMLElement>(), cover = ref<HTMLElement>(), volume = ref<HTMLElement>()
 const opening = ref(false)
@@ -10,7 +11,8 @@ async function open() {
   opening.value = true
   emit('opening')
   window.removeEventListener('keydown', key)
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const duration = getPageTurnDuration()
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || duration === 0
   try {
     if (!reduced && cover.value?.animate) {
       const play = (element: HTMLElement | undefined, frames: Keyframe[], options: KeyframeAnimationOptions) => {
@@ -18,9 +20,9 @@ async function open() {
         if (animation) { animations.push(animation); return animation.finished.catch(() => {}) }
       }
       await Promise.all([
-        play(cover.value, [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-165deg)' }], { duration: 1000, easing: 'cubic-bezier(.45,0,.2,1)', fill: 'forwards' }),
-        play(volume.value, [{ transform: 'scale(1)' }, { transform: 'scale(2.2)' }], { duration: 1100, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' }),
-        play(scene.value, [{ opacity: 1 }, { opacity: 1, offset: .4 }, { opacity: 0 }], { duration: 1100, fill: 'forwards' }),
+        play(cover.value, [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-165deg)' }], { duration, easing: 'cubic-bezier(.45,0,.2,1)', fill: 'forwards' }),
+        play(volume.value, [{ transform: 'scale(1)' }, { transform: 'scale(2.2)' }], { duration: duration + 100, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' }),
+        play(scene.value, [{ opacity: 1 }, { opacity: 1, offset: .55 }, { opacity: 0 }], { duration: duration + 100, fill: 'forwards' }),
       ])
     }
   } finally {
@@ -40,6 +42,7 @@ onBeforeUnmount(() => { disposed = true; window.removeEventListener('keydown', k
     <div ref="volume" class="closed-volume">
       <div class="closed-paper" aria-hidden="true"></div>
       <button ref="cover" class="closed-cover" :disabled="opening" aria-label="打开书本，进入登录界面" @click.stop="open">
+        <img class="cover-landscape" :src="'/art/wind-and-water.jpg'" alt="" width="484" height="1200" aria-hidden="true" />
         <span class="cover-imprint">智能知识中心</span>
         <span class="cover-symbol" aria-hidden="true">知</span>
         <span class="cover-title">让知识有序，<br />让答案有据。</span>

@@ -1,4 +1,8 @@
 import { nextTick } from 'vue'
+import { chooseStoryTransition, type StoryTransition } from './storyTransition'
+
+let activeInterrupt: (() => void) | undefined
+export function cancelWorkspaceTransition() { activeInterrupt?.() }
 
 // A moving diagonal crease starts at the upper-right corner. Reflecting the
 // lifted polygon across it keeps the reverse attached to the front of the page.
@@ -41,16 +45,27 @@ function curlFrames(width: number, height: number, top = 0) {
 }
 
 /** Preserve a noninteractive paper copy while the real route loads underneath it. */
-export async function enterWorkspace(navigate: () => Promise<unknown>, workspace = false) {
+export async function enterWorkspace(navigate: () => Promise<unknown>, workspace = false, plan: StoryTransition = chooseStoryTransition('', '')) {
   const root = document.documentElement
   const app = document.querySelector<HTMLElement>('#app')
   const wasInert = app?.hasAttribute('inert')
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+  const reduced = motionPreference?.matches || plan.duration <= 0
   const source = document.querySelector<HTMLElement>(workspace ? '.app-shell' : '.login-page')
   const animations: Animation[] = []
   let overlay: HTMLElement | undefined
   let interrupted = false
   const interrupt = () => { interrupted = true; animations.forEach(animation => animation.cancel()) }
+  activeInterrupt = interrupt
+  const skip = (event: KeyboardEvent) => { if (event.key === 'Escape') interrupt() }
+  const motionChanged = () => { if (motionPreference?.matches) interrupt() }
+  const play = (target: HTMLElement | null, frames: Keyframe[], options: KeyframeAnimationOptions) => {
+    try {
+      const animation = target?.animate?.(frames, options)
+      if (animation) { animations.push(animation); return animation.finished.catch(() => {}) }
+    } catch { /* Animation support must never block navigation. */ }
+    return Promise.resolve()
+  }
   root.classList.add('entering-workspace')
   try {
     if (!reduced && source) {
@@ -58,10 +73,31 @@ export async function enterWorkspace(navigate: () => Promise<unknown>, workspace
       const paper = source.cloneNode(true) as HTMLElement
       const originals = source.querySelectorAll<HTMLElement>('*')
       const copies = paper.querySelectorAll<HTMLElement>('*')
+      const backgroundColor = getComputedStyle(source).backgroundColor
+      const animated = source.getAnimations
+        ? new Set(source.getAnimations({ subtree: true }).map(animation => (animation.effect as KeyframeEffect | null)?.target)) : undefined
+      const scrollPositions: Array<{ copy: HTMLElement; top: number; left: number }> = []
+      // Read the live tree while layout is clean. Nothing is mounted or mutated
+      // until all styles and scroll offsets have been captured.
+      const rootScroll = { top: source.scrollTop, left: source.scrollLeft }
       originals.forEach((element, index) => {
-        const style = getComputedStyle(element)
-        if (style.animationName && style.animationName !== 'none') {
-          Object.assign(copies[index]!.style, { transform: style.transform, opacity: style.opacity, filter: style.filter })
+        const top = element.scrollTop, left = element.scrollLeft
+        if (top || left) scrollPositions.push({ copy: copies[index]!, top, left })
+        if (workspace && element.matches('.knowledge-grid > .knowledge-card')) {
+          const rect = element.getBoundingClientRect()
+          // Keep grid row heights, but don't lay out or paint invisible card
+          // contents in the short-lived transition replica.
+          if (rect.height > 0 && (rect.bottom < -64 || rect.top > innerHeight + 64)) {
+            const copy = copies[index]!
+            copy.replaceChildren()
+            Object.assign(copy.style, { height: `${rect.height}px`, minHeight: `${rect.height}px`, boxSizing: 'border-box' })
+          }
+        }
+        if (!animated || animated.has(element)) {
+          const style = getComputedStyle(element)
+          if (animated || (style.animationName && style.animationName !== 'none')) {
+            Object.assign(copies[index]!.style, { transform: style.transform, opacity: style.opacity, filter: style.filter })
+          }
         }
       })
       const originalBook = source.querySelector<HTMLElement>('.login-book')
@@ -78,25 +114,39 @@ export async function enterWorkspace(navigate: () => Promise<unknown>, workspace
         input.placeholder = '••••••••'
       })
       Object.assign(paper.style, { position: 'absolute', top: `${bounds.top}px`, left: `${bounds.left}px`, width: `${bounds.width}px`, height: `${bounds.height}px`, minHeight: '0', margin: '0', zIndex: '5' })
+      if (workspace) paper.style.backgroundColor = backgroundColor
       overlay = document.createElement('div')
       overlay.className = 'book-transition-overlay book-world'
+      if (workspace) { overlay.classList.add('story-transition'); overlay.dataset.storyKind = plan.kind }
       overlay.setAttribute('aria-hidden', 'true')
       overlay.setAttribute('inert', '')
       const backdrop = document.createElement('div')
       backdrop.className = 'book-transition-backdrop'
-      backdrop.style.backgroundColor = getComputedStyle(source).backgroundColor
-      overlay.append(backdrop, paper)
+      backdrop.style.backgroundColor = backgroundColor
+      if (workspace) {
+        const surface = document.createElement('div')
+        surface.className = 'story-transition-surface'
+        surface.append(paper)
+        overlay.append(backdrop, surface)
+      } else overlay.append(backdrop, paper)
       document.body.append(overlay)
+      // cloneNode does not copy scroll positions. Restore them only after the
+      // replica participates in layout, otherwise the browser clamps them to 0.
+      scrollPositions.forEach(({ copy, top, left }) => { copy.scrollTop = top; copy.scrollLeft = left })
+      if (rootScroll.top) paper.scrollTop = rootScroll.top
+      if (rootScroll.left) paper.scrollLeft = rootScroll.left
       app?.setAttribute('inert', '')
       window.addEventListener('resize', interrupt, { once: true })
+      window.addEventListener('keydown', skip)
+      motionPreference?.addEventListener?.('change', motionChanged)
     }
     await navigate()
     await nextTick()
     if (overlay && !interrupted) {
       const sheet = overlay.querySelector<HTMLElement>(workspace ? '.main-area' : '.login-panel')
       const backdrop = overlay.querySelector<HTMLElement>('.book-transition-backdrop')
-      const book = overlay.querySelector<HTMLElement>('.login-book')
-      const duration = workspace ? 760 : 980
+      const book = overlay.querySelector<HTMLElement>(workspace ? '.book-spread' : '.login-book')
+      const duration = plan.duration
       let reverse: HTMLElement | null = null
       let frames: ReturnType<typeof curlFrames> | undefined
       if (sheet) {
@@ -121,25 +171,21 @@ export async function enterWorkspace(navigate: () => Promise<unknown>, workspace
         })
       })
       // Native Web Animations keeps the same page turn on browsers without View Transitions.
-      const play = (target: HTMLElement | null, frames: Keyframe[], options: KeyframeAnimationOptions) => {
-        try {
-          const animation = target?.animate?.(frames, options)
-          if (animation) { animations.push(animation); return animation.finished.catch(() => {}) }
-        } catch { /* An unavailable animation must not prevent successful login. */ }
-        return Promise.resolve()
-      }
       await Promise.all([
-        play(sheet, frames?.front || [], { duration, easing: 'cubic-bezier(.38,.08,.22,1)', fill: 'both' }),
-        play(reverse, frames?.reverse || [], { duration, easing: 'cubic-bezier(.38,.08,.22,1)', fill: 'both' }),
+        play(sheet, frames?.front || [], { duration, easing: 'cubic-bezier(.42,0,.32,1)', fill: 'both' }),
+        play(reverse, frames?.reverse || [], { duration, easing: 'cubic-bezier(.42,0,.32,1)', fill: 'both' }),
         play(backdrop, [{ opacity: 1 }, { opacity: 1, offset: .12 }, { opacity: 0, offset: .8 }, { opacity: 0 }], { duration, easing: 'linear', fill: 'forwards' }),
         play(book, [{ boxShadow: book ? getComputedStyle(book).boxShadow : 'none' }, { boxShadow: 'none' }], { duration: 450, easing: 'ease-out', fill: 'forwards' }),
-        play(overlay, [{ opacity: 1 }, { opacity: 1, offset: .72 }, { opacity: 0 }], { duration, easing: 'linear', fill: 'forwards' }),
+        play(overlay, [{ opacity: 1 }, { opacity: 1, offset: .9 }, { opacity: 0 }], { duration, easing: 'linear', fill: 'forwards' }),
       ])
     }
   } finally {
+    if (activeInterrupt === interrupt) activeInterrupt = undefined
     animations.forEach(animation => animation.cancel())
     overlay?.remove()
     window.removeEventListener('resize', interrupt)
+    window.removeEventListener('keydown', skip)
+    motionPreference?.removeEventListener?.('change', motionChanged)
     if (!wasInert) app?.removeAttribute('inert')
     root.classList.remove('entering-workspace')
   }

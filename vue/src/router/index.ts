@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { enterWorkspace } from '@/utils/enterWorkspace'
+import { cancelWorkspaceTransition, enterWorkspace } from '@/utils/enterWorkspace'
+import { chooseStoryTransition } from '@/utils/storyTransition'
 
 const routes = [
   { path: '/login', name: 'login', component: () => import('@/views/Login.vue'), meta: { public: true } },
@@ -43,9 +44,14 @@ router.beforeEach(async to => {
 })
 let finishPageTurn: ((failure?: unknown) => void) | undefined
 router.beforeResolve((to, from) => {
-  if (!to.meta.requiresAuth || !from.meta.requiresAuth || to.path === from.path || document.documentElement.classList.contains('entering-workspace')) return
+  if (document.documentElement.classList.contains('entering-workspace')) {
+    // A newer navigation wins. Do not replay an entrance during a rapid back/forward.
+    if (from.meta.requiresAuth) cancelWorkspaceTransition()
+    return
+  }
+  if (!to.meta.requiresAuth || !from.meta.requiresAuth || to.path === from.path) return
   const navigation = new Promise<void>((resolve, reject) => { finishPageTurn = failure => failure ? reject(failure) : resolve() })
-  void enterWorkspace(() => navigation, true).catch(() => { /* Router reports navigation errors; the book overlay always cleans up. */ })
+  void enterWorkspace(() => navigation, true, chooseStoryTransition(from.path, to.path)).catch(() => { /* Router reports navigation errors; the book overlay always cleans up. */ })
 })
 router.afterEach((_to, _from, failure) => { finishPageTurn?.(failure); finishPageTurn = undefined })
 router.onError(error => { finishPageTurn?.(error); finishPageTurn = undefined })

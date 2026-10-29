@@ -13,11 +13,8 @@ public class MarkdownParser implements DocumentParser {
 
     @Override public ParsedDocument parse(InputStream inputStream) throws IOException {
         String source = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-        String text = source.replaceAll("(?m)^#{1,6}\\s*", "")
-                .replaceAll("\\*\\*([^*]+)\\*\\*", "$1")
-                .replaceAll("`([^`]+)`", "$1")
-                .replaceAll("(?m)^[-*+]\\s+", "")
-                .trim();
+        // Keep heading hierarchy, table separators and fenced code as retrieval evidence.
+        String text = source.strip();
         return new ParsedDocument(text, List.of(new ParsedPage(1, text)));
     }
 }

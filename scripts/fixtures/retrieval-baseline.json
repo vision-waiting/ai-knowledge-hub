@@ -1,0 +1,436 @@
+[
+  {
+    "id": "01",
+    "question": "平台上传文档支持哪些文件格式？简要回答。",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "PDF、DOCX、PPTX、TXT、Markdown",
+    "kind": "constructed",
+    "standaloneQuestion": "平台上传文档支持哪些文件格式？简要回答。"
+  },
+  {
+    "id": "02",
+    "question": "单个上传文件最大允许多大？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "50 MB",
+    "kind": "constructed",
+    "standaloneQuestion": "单个上传文件最大允许多大？"
+  },
+  {
+    "id": "03",
+    "question": "旧版 DOC 和 PPT 文件上传前需要怎么处理？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "转换为 DOCX/PPTX",
+    "kind": "constructed",
+    "standaloneQuestion": "旧版 DOC 和 PPT 文件上传前需要怎么处理？"
+  },
+  {
+    "id": "04",
+    "question": "TXT 和 Markdown 推荐使用什么编码？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "UTF-8",
+    "kind": "constructed",
+    "standaloneQuestion": "TXT 和 Markdown 推荐使用什么编码？"
+  },
+  {
+    "id": "05",
+    "question": "文档状态 SUCCESS 代表什么？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "处理完成，可参与检索",
+    "kind": "constructed",
+    "standaloneQuestion": "文档状态 SUCCESS 代表什么？"
+  },
+  {
+    "id": "06",
+    "question": "文档状态 EMBEDDING 和 INDEXING 分别代表什么？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "生成向量、写入向量索引",
+    "kind": "constructed",
+    "standaloneQuestion": "文档状态 EMBEDDING 和 INDEXING 分别代表什么？"
+  },
+  {
+    "id": "07",
+    "question": "ARCHIVED 和 TRASHED 文档是否参与新的问答检索？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "不参与",
+    "kind": "constructed",
+    "standaloneQuestion": "ARCHIVED 和 TRASHED 文档是否参与新的问答检索？"
+  },
+  {
+    "id": "08",
+    "question": "处理中的文件可以删除或重复提交索引吗？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "不可以，需要等待处理结束",
+    "kind": "constructed",
+    "standaloneQuestion": "处理中的文件可以删除或重复提交索引吗？"
+  },
+  {
+    "id": "09",
+    "question": "成功文档重建索引，新版本失败后旧版本还可用吗？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "可用，不会提前替换旧成功版本",
+    "kind": "constructed",
+    "standaloneQuestion": "成功文档重建索引，新版本失败后旧版本还可用吗？"
+  },
+  {
+    "id": "10",
+    "question": "本地文件正文修改后，仅重新索引能读取新内容吗？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "不能，需要上传新版本",
+    "kind": "constructed",
+    "standaloneQuestion": "本地文件正文修改后，仅重新索引能读取新内容吗？"
+  },
+  {
+    "id": "11",
+    "question": "删除单个文档会立即永久删除原文件吗？",
+    "sources": [
+      "文档接入规范.md"
+    ],
+    "expected": "移入回收站，保留原文件，可恢复",
+    "kind": "constructed",
+    "standaloneQuestion": "删除单个文档会立即永久删除原文件吗？"
+  },
+  {
+    "id": "12",
+    "question": "问答输入框如何换行？",
+    "sources": [
+      "平台使用手册.md"
+    ],
+    "expected": "Shift + Enter",
+    "kind": "constructed",
+    "standaloneQuestion": "问答输入框如何换行？"
+  },
+  {
+    "id": "13",
+    "question": "问答会搜索所有知识库还是当前知识库？",
+    "sources": [
+      "平台使用手册.md"
+    ],
+    "expected": "当前知识库",
+    "kind": "constructed",
+    "standaloneQuestion": "问答会搜索所有知识库还是当前知识库？"
+  },
+  {
+    "id": "14",
+    "question": "回答的引用卡片可以用来做什么？",
+    "sources": [
+      "平台使用手册.md"
+    ],
+    "expected": "查看原文片段、下载原文件",
+    "kind": "constructed",
+    "standaloneQuestion": "回答的引用卡片可以用来做什么？"
+  },
+  {
+    "id": "15",
+    "question": "团队中 VIEWER、EDITOR、MANAGER 分别有哪些权限？",
+    "sources": [
+      "平台使用手册.md"
+    ],
+    "expected": "阅读、维护文档、管理知识库",
+    "kind": "constructed",
+    "standaloneQuestion": "团队中 VIEWER、EDITOR、MANAGER 分别有哪些权限？"
+  },
+  {
+    "id": "16",
+    "question": "用户修改密码后需要重新登录吗？",
+    "sources": [
+      "平台使用手册.md"
+    ],
+    "expected": "需要",
+    "kind": "constructed",
+    "standaloneQuestion": "用户修改密码后需要重新登录吗？"
+  },
+  {
+    "id": "17",
+    "question": "请继续解释其中 EDITOR 的权限。",
+    "sources": [
+      "平台使用手册.md"
+    ],
+    "expected": "可以维护文档",
+    "kind": "constructed",
+    "standaloneQuestion": "EDITOR 可以维护哪些内容？"
+  },
+  {
+    "id": "19",
+    "question": "quantum banana spaceship 987654321",
+    "sources": [],
+    "expected": "资料不足，不编造答案",
+    "kind": "constructed",
+    "standaloneQuestion": "quantum banana spaceship 987654321"
+  },
+  {
+    "id": "20",
+    "question": "zyxwv quasar nebula 555999888",
+    "sources": [],
+    "expected": "资料不足，不提供无关引用",
+    "kind": "constructed",
+    "standaloneQuestion": "zyxwv quasar nebula 555999888"
+  },
+  {
+    "id": "s19",
+    "question": "自动配置取决于哪些条件？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s20",
+    "question": "SpringBootApplication 包含哪些注解？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s21",
+    "question": "EnableAutoConfiguration 有什么作用？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s22",
+    "question": "ConditionalOnClass 判断什么？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s23",
+    "question": "ConditionalOnMissingBean 用于什么条件？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s24",
+    "question": "自行声明 Bean 后默认配置如何变化？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s25",
+    "question": "如何排除特定自动配置？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s26",
+    "question": "Starter 解决什么问题？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s27",
+    "question": "starter-web 包含哪类依赖？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s28",
+    "question": "Starter 本身执行自动配置吗？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s29",
+    "question": "Spring Framework 提供哪些基础能力？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s30",
+    "question": "Spring Boot 如何简化部署？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s31",
+    "question": "Spring Boot 是否替代 Spring Framework？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s32",
+    "question": "应用有哪些配置来源？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s33",
+    "question": "命令行和配置文件同名属性哪个优先？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s34",
+    "question": "数据库密码应该放在哪里？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "s35",
+    "question": "模型密钥能写入源码吗？",
+    "sources": [
+      "Spring-Boot-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r36",
+    "question": "Redis 支持哪些数据结构？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r37",
+    "question": "计数器可以使用什么数据结构？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r38",
+    "question": "对象字段适合用什么结构保存？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r39",
+    "question": "排行榜适合使用哪种结构？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r40",
+    "question": "RDB 如何持久化数据？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r41",
+    "question": "AOF 如何持久化数据？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r42",
+    "question": "AOF 可以配置同步策略吗？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r43",
+    "question": "RDB 和 AOF 能同时启用吗？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r44",
+    "question": "缓存失效后应该如何处理？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r45",
+    "question": "用户权限能只靠客户端缓存判断吗？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r46",
+    "question": "Redis 列表是否属于常用数据结构？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r47",
+    "question": "Redis 是否支持集合？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r48",
+    "question": "RDB 与 AOF 的主要差异是什么？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  },
+  {
+    "id": "r49",
+    "question": "为什么权限检查不能仅依赖客户端缓存？",
+    "sources": [
+      "Redis-guide.md"
+    ],
+    "kind": "constructed"
+  }
+]

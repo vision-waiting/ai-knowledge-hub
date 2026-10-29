@@ -1,0 +1,52 @@
+/* Chinese landscape plates extend the existing book, binding and page turns. */
+.book-world {
+  --book-desk: #e5e2d7; --book-ink: #30473e; --book-cover: #304a40; --paper-alpha: .85;
+  --verso-paper: linear-gradient(90deg, rgb(222 223 203 / var(--paper-alpha)), rgb(245 243 229 / var(--paper-alpha)) 3%, rgb(255 253 240 / var(--paper-alpha)) 30%, rgb(244 241 223 / var(--paper-alpha)) 82%, rgb(227 226 203 / var(--paper-alpha)) 95%, rgb(169 178 153 / var(--paper-alpha)));
+  --recto-paper: linear-gradient(90deg, rgb(184 192 165 / var(--paper-alpha)), rgb(229 229 209 / var(--paper-alpha)) 2%, rgb(255 253 243 / var(--paper-alpha)) 9%, rgb(255 253 243 / var(--paper-alpha)) 82%, rgb(247 244 229 / var(--paper-alpha)) 97%, rgb(228 224 201 / var(--paper-alpha)));
+}
+.book-world { position: relative; isolation: isolate; min-height: 100dvh; }
+.book-landscape-backdrop {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: #e9e1cd url('/art/shanshui-desktop.webp') center / cover no-repeat;
+}
+@media (max-width: 767px) {
+  .book-landscape-backdrop { background-image: url('/art/shanshui-mobile.webp'); }
+}
+body:has(.book-world) { background: #e9e7dd; }
+.book-world .app-shell, .book-world .login-page.login-page, .book-cover-scene { background: transparent; }
+.cover-instruction { padding: 8px 16px; background: #f4f0e6e6; }
+.closed-cover { overflow: hidden; background: rgb(238 232 215 / var(--paper-alpha)); color: #2f463a; }
+.cover-landscape { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%; opacity: .28; filter: grayscale(.65) brightness(1.35); pointer-events: none; }
+.closed-cover > span { position: relative; }
+.closed-cover::after { border-color: #58674980; }
+.cover-imprint { padding: 8px 12px; background: #f5efdf; }
+.cover-symbol { border-radius: 2px; border-color: #954733; color: #954733; background: #f5efdf; }
+.cover-title { padding: 10px 16px; background: #f5efdfed; }
+.cover-divider { background: #69725a; }
+.cover-subtitle, .cover-bottom { background: #f5efdf; padding: 6px 10px; }
+.cover-bottom { margin-top: auto; }
+.closed-volume, .cover-instruction { z-index: 1; }
+/* Only the paper is translucent; text and controls are painted at full opacity. */
+.closed-volume, .book-world .login-book, .book-world .book-spread { opacity: 1; }
+.closed-paper { background: transparent; }
+.book-world .login-book.login-book, .book-world .book-spread { background: transparent; }
+.book-world .chapter-page, .book-world .login-story.login-story { background: var(--verso-paper); }
+.book-world .book-spread > .main-area, .book-world .login-panel.login-panel::before { background: var(--recto-paper); }
+/* Draw the page block below the book, without an opaque sheet behind the text. */
+.book-world .book-spread::before, .book-world .login-book::after { top: calc(100% - 2px); bottom: auto; height: 17px; }
+.book-world .chapter-brand > span, .book-world .login-story .mobile-brand > span { background: #944b3d; color: #fff8e8; border-radius: 2px; }
+.book-world .chapter-page .ink-landscape { width: 100%; margin: 18px auto; transform: none; }
+.book-world .chapter-page .landscape-window { height: 270px; }
+.book-world .login-story .ink-landscape { width: 100%; margin: 24px auto; }
+@media (min-width: 768px) and (max-width: 1100px) {
+  .book-world .chapter-page .landscape-window { height: 230px; }
+}
+@media (max-width: 767px) {
+  .book-landscape-backdrop { background-position: 70% center; }
+  .closed-cover { padding: 26px 20px 20px; }
+  .cover-symbol { margin-bottom: 16px; }
+  .cover-title { font-size: 24px; }
+}
+
+/* Keep outgoing text legible while the new page is revealed beneath it. */
+.book-world.book-transition-overlay { --paper-alpha: 1; }

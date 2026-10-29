@@ -7,6 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class TextChunkerTest {
     @Test
+    void keepsFittingFencedBlockTogether() {
+        String code = "```java\nreturn one + two;\n```";
+        var chunks = new TextChunker(18, 0).chunk("甲乙丙丁戊己庚辛\n" + code, 2);
+        org.junit.jupiter.api.Assertions.assertTrue(chunks.stream().anyMatch(c -> c.content().contains(code)));
+    }
+    @Test
     void paragraphBoundaryWinsOverLaterSentenceBoundary() {
         var chunks = new TextChunker(12, 2).chunk("一二三四五六\n\n七八。九十甲乙丙丁", 4);
         assertEquals("一二三四五六", chunks.get(0).content());
